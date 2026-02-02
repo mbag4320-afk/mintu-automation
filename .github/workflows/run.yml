@@ -1,0 +1,28 @@
+name: Income Automation Bot
+
+on:
+  schedule:
+    - cron: '0 6,18 * * *'  # প্রতিদিন সকাল ৬টা এবং সন্ধ্যা ৬টায় নিজে থেকে চলবে
+  workflow_dispatch:        # নিজে টেস্ট করার জন্য বাটন দেবে
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run Script
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+        run: python main.py
