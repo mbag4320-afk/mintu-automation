@@ -6,27 +6,24 @@ import random
 # ১. ক্রিপ্টো প্রাইজ ও নিউজ সংগ্রহের ফাংশন
 def get_crypto_data_and_news():
     api_key = os.getenv("NEWS_API_KEY")
-    # প্রাইজ ডাটা
     price_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
-    # নিউজ ডাটা
     news_url = f"https://newsapi.org/v2/everything?q=crypto&pageSize=3&apiKey={api_key}"
     
     content = "📊 *Crypto Market & News:*\n"
     
     try:
-        # প্রাইজ যোগ করা হচ্ছে
         p_res = requests.get(price_url).json()
         btc = p_res['bitcoin']['usd']
         eth = p_res['ethereum']['usd']
         content += f"💰 BTC: ${btc} | 💎 ETH: ${eth}\n\n"
         
-        # নিউজ যোগ করা হচ্ছে
         n_res = requests.get(news_url).json()
         articles = n_res.get('articles', [])
         for art in articles:
             content += f"🔹 [{art['title']}]({art['url']})\n"
         return content + "\n"
-    except:
+    except Exception as e:
+        print(f"Crypto Error: {e}")
         return "📊 *Crypto News:* Currently unavailable.\n\n"
 
 # ২. রিয়েল-টাইম লুট ডিল ফাংশন
@@ -48,7 +45,7 @@ def get_latest_deals():
         deals_text += "🔍 *Scanning for new loot...*\n\n"
     return deals_text
 
-# ৩. ক্যাটাগরি মেনু (আরও পরিষ্কার ফরম্যাটে)
+# ৩. ক্যাটাগরি মেনু
 def get_category_menu():
     tag = "offerslive24-21"
     menu = "━━━ *SHOP BY CATEGORY* ━━━\n\n"
@@ -59,12 +56,11 @@ def get_category_menu():
     menu += "⚡ *Hurry! Grab before price increases!*"
     return menu
 
-# ৪. ডাইনামিক ব্যানার ও মেসেজ পাঠানোর ফাংশন
+# ৪. ডাইনামিক ব্যানার ও মেসেজ পাঠানোর ফাংশন (ফিক্সড)
 def send_telegram_with_random_banner(message):
     token = os.getenv("BOT_TOKEN")
     chat_id = os.getenv("CHAT_ID")
     
-    # প্রফেশনাল শপিং ব্যানারের একটি লিস্ট (প্রতিবার এখান থেকে একটি আলাদা ছবি নেবে)
     banners = [
         "https://img.freepik.com/free-vector/special-offer-modern-sale-banner-template_1017-20667.jpg",
         "https://img.freepik.com/free-vector/gradient-mobile-store-sale-background_23-2150319114.jpg",
@@ -73,7 +69,7 @@ def send_telegram_with_random_banner(message):
         "https://img.freepik.com/free-vector/online-shopping-horizontal-banner-solution_23-2148897328.jpg"
     ]
     
-    photo_url = random.choice(banners) # লটারি করে একটি ছবি বেছে নেওয়া হচ্ছে
+    photo_url = random.choice(banners)
     
     url = f"https://api.telegram.org/bot{token}/sendPhoto"
     payload = {
@@ -82,4 +78,11 @@ def send_telegram_with_random_banner(message):
         "caption": message,
         "parse_mode": "Markdown"
     }
-    requests.post(
+    
+    # এখানে 'data=payload' যোগ করা হয়েছে যা আগেরবার মিস হয়েছিল
+    response = requests.post(url, data=payload)
+    print(f"Telegram Response: {response.text}") # এটি আমাদের এরর বুঝতে সাহায্য করবে
+
+if __name__ == "__main__":
+    final_content = get_crypto_data_and_news() + get_latest_deals() + get_category_menu()
+    send_telegram_with_random_banner(final_content)
