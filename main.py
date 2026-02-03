@@ -1,67 +1,55 @@
 import os
 import requests
 import feedparser
-import time
 
-def send_telegram_post(title, link, image_url):
+def send_test_message():
+    token = os.getenv("BOT_TOKEN")
+    chat_id = os.getenv("CHAT_ID")
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    
+    # এটি চেক করার জন্য একটি সাধারণ মেসেজ
+    test_payload = {
+        "chat_id": chat_id,
+        "text": "🔍 *বট এখন ডিল চেক করছে... সংযোগ ঠিক আছে!*",
+        "parse_mode": "Markdown"
+    }
+    r = requests.post(url, data=test_payload)
+    print(f"Test Message Status: {r.status_code}, Response: {r.text}")
+
+def get_and_post_deals():
     token = os.getenv("BOT_TOKEN")
     chat_id = os.getenv("CHAT_ID")
     amazon_tag = "offerslive24-21"
-
-    if "amazon.in" in link:
-        connector = "&" if "?" in link else "?"
-        link = f"{link}{connector}tag={amazon_tag}"
-
-    caption = f"🛍️ *{title}*\n\n🔥 *Limited Time Deal! Grab it now!*\n\n👉 [Click Here to Buy]({link})"
-
-    url = f"https://api.telegram.org/bot{token}/sendPhoto"
-    payload = {
-        "chat_id": chat_id,
-        "photo": image_url,
-        "caption": caption,
-        "parse_mode": "Markdown"
-    }
     
-    try:
-        res = requests.post(url, data=payload)
-        print(f"Telegram response for {title}: {res.status_code}")
-    except Exception as e:
-        print(f"Error sending post: {e}")
-
-def get_and_post_deals():
-    # একাধিক ডিল সোর্স (যদি একটি কাজ না করে অন্যটি করবে)
-    urls = [
-        "https://indiafreestuff.in/feed",
-        "https://www.desidime.com/new.atom"
-    ]
+    # ডিল সোর্স
+    feed_url = "https://indiafreestuff.in/feed"
+    feed = feedparser.parse(feed_url)
     
-    found_any = False
-    for url in urls:
-        print(f"Checking feed: {url}")
-        feed = feedparser.parse(url)
-        
-        if feed.entries:
-            found_any = True
-            print(f"Found {len(feed.entries)} deals in {url}")
-            for entry in feed.entries[:3]: # প্রতিবার ৩টি করে সেরা ডিল পাঠাবে
-                title = entry.title.split('|')[0].strip()
-                link = entry.link
-                
-                # ইমেজ খুঁজে বের করার ভালো পদ্ধতি
-                image_url = "https://img.freepik.com/free-vector/special-offer-modern-sale-banner-template_1017-20667.jpg"
-                if 'media_content' in entry:
-                    image_url = entry.media_content[0]['url']
-                elif 'links' in entry:
-                    for l in entry.links:
-                        if 'image' in l.get('type', ''):
-                            image_url = l.href
-                
-                send_telegram_post(title, link, image_url)
-                time.sleep(3) # পোস্টের মাঝে ৩ সেকেন্ড বিরতি
-            break # একটি সোর্স থেকে ডিল পেয়ে গেলে আর পরেরটা চেক করবে না
+    if feed.entries:
+        for entry in feed.entries[:3]:
+            title = entry.title.split('|')[0].strip()
+            link = entry.link
             
-    if not found_any:
-        print("No active deals found at this moment.")
+            if "amazon.in" in link:
+                connector = "&" if "?" in link else "?"
+                link = f"{link}{connector}tag={amazon_tag}"
+            
+            caption = f"🛍️ *{title}*\n\n👉 [Click to Buy]({link})"
+            
+            # সরাসরি টেক্সট মেসেজ হিসেবে পাঠানোর চেষ্টা (যাতে ছবি লোড না হলেও মেসেজ যায়)
+            post_url = f"https://api.telegram.org/bot{token}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": caption,
+                "parse_mode": "Markdown"
+            }
+            requests.post(post_url, data=payload)
+            print(f"Posted: {title}")
+    else:
+        print("No deals found in feed.")
 
 if __name__ == "__main__":
+    # প্রথমে কানেকশন চেক করবে
+    send_test_message()
+    # তারপর ডিল পোস্ট করার চেষ্টা করবে
     get_and_post_deals()
