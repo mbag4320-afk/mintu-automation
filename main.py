@@ -4,7 +4,7 @@ import feedparser
 import random
 import time
 
-# ১. ক্রিপ্টো প্রাইজ ও নিউজ
+# ১. ক্রিপ্টো প্রাইজ ও নিউজ (আরও সুন্দর ফরম্যাট)
 def get_crypto_update():
     try:
         price_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
@@ -16,73 +16,83 @@ def get_crypto_update():
         n_res = requests.get(news_url).json()
         articles = n_res.get('articles', [])
         
-        msg = f"📊 *Crypto Live:* BTC: ${btc} | ETH: ${eth}\n\n"
+        msg = f"📊 *Live Market:* BTC: ${btc} | ETH: ${eth}\n\n"
+        msg += "*Breaking News:*\n"
         for art in articles:
-            msg += f"🔹 [{art['title'][:60]}...]({art['url']})\n"
+            msg += f"🔹 [{art['title'][:65]}...]({art['url']})\n"
         return msg + "\n"
     except:
-        return "📊 *Crypto News:* Currently updating...\n\n"
+        return "📊 *Market Update:* Synchronizing data...\n\n"
 
-# ২. ডাইনামিক ডিল হান্টার (MEGA Deals Style)
+# ২. মাল্টি-সোর্স ডিল হান্টার (যাতে কখনোই খালি না থাকে)
 def post_mega_deals():
     token = os.getenv("BOT_TOKEN")
     chat_id = os.getenv("CHAT_ID")
     amazon_tag = "offerslive24-21"
     
-    # জনপ্রিয় ডিল সাইটের ফিড
-    feed_url = "https://indiafreestuff.in/feed"
-    # ব্রাউজার হিসেবে পরিচয় দেওয়ার জন্য (যাতে ব্লক না করে)
-    feed = feedparser.parse(feed_url, agent='Mozilla/5.0')
+    # দুটি আলাদা সোর্স যাতে একটিতে ডিল না থাকলে অন্যটি পাওয়া যায়
+    sources = [
+        "https://indiafreestuff.in/feed",
+        "https://www.desidime.com/new.atom"
+    ]
     
-    if not feed.entries:
-        # যদি ডিল না পায়, একটি সাধারণ মেসেজ দেবে
+    all_entries = []
+    for url in sources:
+        feed = feedparser.parse(url, agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+        if feed.entries:
+            all_entries.extend(feed.entries[:3]) # প্রতি সাইট থেকে ৩টি করে নেবে
+    
+    if not all_entries:
         requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
-                      data={"chat_id": chat_id, "text": "🔎 *নতুন কোনো বড় ডিল এই মুহূর্তে নেই। আমাদের ক্যাটাগরি মেনু চেক করুন নিচে!*", "parse_mode": "Markdown"})
+                      data={"chat_id": chat_id, "text": "🔎 *Checking for fresh loot deals... Stay tuned for the next update!*", "parse_mode": "Markdown"})
         return
 
-    # সর্বশেষ ৩টি ডিল আলাদা আলাদা পোস্ট হবে (ভিডিওর মতো)
-    for entry in feed.entries[:3]:
+    # ব্যানার ইমেজের লিস্ট
+    banners = [
+        "https://img.freepik.com/free-vector/special-offer-modern-sale-banner-template_1017-20667.jpg",
+        "https://img.freepik.com/free-vector/gradient-mobile-store-sale-background_23-2150319114.jpg",
+        "https://img.freepik.com/free-vector/fashion-sale-banner-template_23-2148522533.jpg"
+    ]
+
+    # সেরা ৩টি ডিল আলাদা পোস্ট হবে
+    random.shuffle(all_entries)
+    for entry in all_entries[:3]:
         title = entry.title.split('|')[0].strip()
         link = entry.link
         
         if "amazon.in" in link:
             link = f"{link}&tag={amazon_tag}" if "?" in link else f"{link}?tag={amazon_tag}"
         
-        # ডিফল্ট ছবি
-        img = "https://img.freepik.com/free-vector/special-offer-modern-sale-banner-template_1017-20667.jpg"
+        img = random.choice(banners)
+        caption = f"🛍️ *{title}*\n\n🔥 *Loot Deal! Don't miss out!*\n\n👉 [Click to Grab the Offer]({link})"
         
-        caption = f"🛍️ *{title}*\n\n🔥 *Limited Time Deal! Grab it now!*\n\n👉 [Click Here to Buy]({link})"
-        
-        # ফটো পোস্ট করা
-        payload = {"chat_id": chat_id, "photo": img, "caption": caption, "parse_mode": "Markdown"}
-        requests.post(f"https://api.telegram.org/bot{token}/sendPhoto", data=payload)
-        time.sleep(3) # বিরতি
+        requests.post(f"https://api.telegram.org/bot{token}/sendPhoto", 
+                      data={"chat_id": chat_id, "photo": img, "caption": caption, "parse_mode": "Markdown"})
+        time.sleep(4)
 
-# ৩. হেলথ টিপস ও মেনু
+# ৩. হেলথ টিপস ও ক্যাটাগরি মেনু
 def get_footer():
     tips = ["💧 পর্যাপ্ত জল পান করুন।", "🥗 লবণ কম খান।", "😴 ৭-৮ ঘণ্টা ঘুমান।", "🚶‍♂️ ২০ মিনিট হাঁটুন।"]
     tag = "offerslive24-21"
     
     footer = f"🍎 *Daily Health Tip:* _{random.choice(tips)}_\n\n"
-    footer += "━━━ *SHOP BY CATEGORY* ━━━\n"
-    footer += f"📱 [Smartphones](https://www.amazon.in/mobiles?tag={tag}) | 💻 [Laptops](https://www.amazon.in/electronics?tag={tag})\n"
-    footer += f"👗 [Fashion](https://myntr.it/b9SAtFm) | 🎁 [Flipkart Loot](https://fktr.in/7WhPb8j)\n\n"
-    footer += "✨ *Hurry! Prices may increase anytime!*"
+    footer += "━━━━━━━━━━━━━━━━━━━━\n"
+    footer += "📱 [Mobile Deals](https://www.amazon.in/mobiles?tag={tag}) | 💻 [Laptops](https://www.amazon.in/electronics?tag={tag})\n"
+    footer += f"👗 [Fashion](https://myntr.it/b9SAtFm) | 🛍️ [Flipkart Loot](https://fktr.in/7WhPb8j)\n\n"
+    footer += "✨ *Hurry! Grab these before prices go up!*"
     return footer
 
 if __name__ == "__main__":
     token = os.getenv("BOT_TOKEN")
     chat_id = os.getenv("CHAT_ID")
     
-    # প্রথমে ক্রিপ্টো ও নিউজ পাঠাবে
-    header_msg = get_crypto_update()
-    requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": header_msg, "parse_mode": "Markdown", "disable_web_page_preview": True})
+    # ধাপ ১: নিউজ ও প্রাইজ
+    header = get_crypto_update()
+    requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": header, "parse_mode": "Markdown", "disable_web_page_preview": True})
     
-    # তারপর ৩টি ডিল আলাদা ফটো সহ পাঠাবে
+    # ধাপ ২: আলাদা আলাদা ডিল পোস্ট
     post_mega_deals()
     
-    # সবশেষে হেলথ টিপস ও ক্যাটাগরি মেনু পাঠাবে
-    footer_msg = get_footer()
-    requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": footer_msg, "parse_mode": "Markdown", "disable_web_page_preview": True})
-
-    print("MEGA Deals Automation Complete!")
+    # ধাপ ৩: মেনু ও টিপস
+    footer = get_footer()
+    requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": footer, "parse_mode": "Markdown", "disable_web_page_preview": True})
