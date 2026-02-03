@@ -8,15 +8,12 @@ def send_telegram_post(title, link, image_url):
     chat_id = os.getenv("CHAT_ID")
     amazon_tag = "offerslive24-21"
 
-    # আমাজন লিঙ্ক হলে আপনার আইডি যোগ করা হচ্ছে
     if "amazon.in" in link:
         connector = "&" if "?" in link else "?"
         link = f"{link}{connector}tag={amazon_tag}"
 
-    # মেসেজ ফরম্যাট (ভিডিওর মতো পরিষ্কার)
     caption = f"🛍️ *{title}*\n\n🔥 *Limited Time Deal! Grab it now!*\n\n👉 [Click Here to Buy]({link})"
 
-    # টেলিগ্রামে পোস্ট পাঠানো
     url = f"https://api.telegram.org/bot{token}/sendPhoto"
     payload = {
         "chat_id": chat_id,
@@ -27,37 +24,44 @@ def send_telegram_post(title, link, image_url):
     
     try:
         res = requests.post(url, data=payload)
-        print(f"Post Sent: {title}")
+        print(f"Telegram response for {title}: {res.status_code}")
     except Exception as e:
         print(f"Error sending post: {e}")
 
 def get_and_post_deals():
-    # লেটেস্ট ডিল সোর্স
-    url = "https://indiafreestuff.in/feed"
-    feed = feedparser.parse(url)
+    # একাধিক ডিল সোর্স (যদি একটি কাজ না করে অন্যটি করবে)
+    urls = [
+        "https://indiafreestuff.in/feed",
+        "https://www.desidime.com/new.atom"
+    ]
     
-    if not feed.entries:
-        print("No new deals found.")
-        return
-
-    # সর্বশেষ ৫টি ডিল আলাদা আলাদা ভাবে পোস্ট করা হবে
-    for entry in feed.entries[:5]:
-        title = entry.title.split('|')[0].strip()
-        link = entry.link
+    found_any = False
+    for url in urls:
+        print(f"Checking feed: {url}")
+        feed = feedparser.parse(url)
         
-        # ডিল থেকে ছবি বের করার চেষ্টা
-        image_url = "https://img.freepik.com/free-vector/special-offer-modern-sale-banner-template_1017-20667.jpg" # ডিফল্ট ছবি
-        if 'media_content' in entry:
-            image_url = entry.media_content[0]['url']
-        elif 'links' in entry:
-            for l in entry.links:
-                if 'image' in l.get('type', ''):
-                    image_url = l.href
-        
-        # প্রতি পোস্টের মাঝে ৫ সেকেন্ড বিরতি (টেলিগ্রাম স্প্যাম রোধ করতে)
-        send_telegram_post(title, link, image_url)
-        time.sleep(5)
+        if feed.entries:
+            found_any = True
+            print(f"Found {len(feed.entries)} deals in {url}")
+            for entry in feed.entries[:3]: # প্রতিবার ৩টি করে সেরা ডিল পাঠাবে
+                title = entry.title.split('|')[0].strip()
+                link = entry.link
+                
+                # ইমেজ খুঁজে বের করার ভালো পদ্ধতি
+                image_url = "https://img.freepik.com/free-vector/special-offer-modern-sale-banner-template_1017-20667.jpg"
+                if 'media_content' in entry:
+                    image_url = entry.media_content[0]['url']
+                elif 'links' in entry:
+                    for l in entry.links:
+                        if 'image' in l.get('type', ''):
+                            image_url = l.href
+                
+                send_telegram_post(title, link, image_url)
+                time.sleep(3) # পোস্টের মাঝে ৩ সেকেন্ড বিরতি
+            break # একটি সোর্স থেকে ডিল পেয়ে গেলে আর পরেরটা চেক করবে না
+            
+    if not found_any:
+        print("No active deals found at this moment.")
 
 if __name__ == "__main__":
     get_and_post_deals()
-    print("All Deals Posted in MEGA Deals Style!")
