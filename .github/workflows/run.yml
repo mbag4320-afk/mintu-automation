@@ -2,8 +2,8 @@ name: Income Automation Bot
 
 on:
   schedule:
-    - cron: '0 6,12,18 * * *'  # প্রতিদিন সকাল ৬টা, দুপুর ১২টা এবং সন্ধ্যা ৬টায় নিজে থেকে চলবে
-  workflow_dispatch:        # নিজে টেস্ট করার জন্য বাটন দেবে
+    - cron: '0 6,12,18 * * *' # প্রতিদিন নির্দিষ্ট সময়ে চলবে
+  workflow_dispatch:      # ম্যানুয়ালি রান করার জন্য
 
 jobs:
   build:
@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests feedparser
+          pip install -r requirements.txt
 
       - name: Run Script
         env:
