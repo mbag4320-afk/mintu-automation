@@ -6,42 +6,30 @@ import math
 import yfinance as yf
 from bs4 import BeautifulSoup
 
-# ১. মার্কেট ডাটা সংগ্রহের ফাংশন (Crypto, Gold, Stocks)
+# ১. মার্কেট সামারি (Gold, Crypto, Stocks)
 def get_market_summary():
     try:
-        # ক্রিপ্টো প্রাইস
         crypto_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
         c_data = requests.get(crypto_url, timeout=15).json()
-        btc = f"${c_data['bitcoin']['usd']:,}"
-        eth = f"${c_data['ethereum']['usd']:,}"
-
-        # গোল্ড, সিলভার, নিফটি, সেনসেক্স (Yahoo Finance)
+        btc, eth = f"${c_data['bitcoin']['usd']:,}", f"${c_data['ethereum']['usd']:,}"
+        
         tickers = ["^NSEI", "^BSESN", "GC=F", "SI=F"]
-        data_summary = ""
-        try:
-            df = yf.download(tickers, period="1d", interval="1m", progress=False, group_by='ticker')
-            def clean_val(ticker_name):
-                try:
-                    val = df[ticker_name]['Close'].iloc[-1]
-                    return f"{val:,.2f}" if not math.isnan(val) else "Closed"
-                except: return "Updating.."
-            
-            data_summary = (
-                f"📀 <b>Gold:</b> ${clean_val('GC=F')} | <b>Silver:</b> ${clean_val('SI=F')}\n"
-                f"📈 <b>Nifty:</b> {clean_val('^NSEI')} | <b>Sensex:</b> {clean_val('^BSESN')}\n"
-            )
-        except:
-            data_summary = "📊 Market: Weekend/Updating..\n"
-
+        df = yf.download(tickers, period="1d", interval="1m", progress=False, group_by='ticker')
+        def clean(t):
+            try:
+                v = df[t]['Close'].iloc[-1]
+                return f"{v:,.2f}" if not math.isnan(v) else "Closed"
+            except: return "Updating.."
+        
         return (
             f"📊 <b>MARKET WATCH</b>\n"
             f"₿ <b>BTC:</b> {btc} | <b>ETH:</b> {eth}\n"
-            f"{data_summary}"
+            f"📀 <b>Gold:</b> ${clean('GC=F')} | <b>Silver:</b> ${clean('SI=F')}\n"
+            f"📈 <b>Nifty:</b> {clean('^NSEI')} | <b>Sensex:</b> {clean('^BSESN')}\n"
         )
-    except:
-        return "📊 Market Data: Refreshing..."
+    except: return "📊 Market Watch: Updating..."
 
-# ২. স্টোর শনাক্ত করার ফাংশন (অ্যামাজন, ফ্লিপকার্ট ইত্যাদি)
+# ২. স্টোর ডিটেকশন
 def detect_store(link, title):
     l, t = link.lower(), title.lower()
     if "amazon" in l or "amazon" in t: return "AMAZON 🧡", "🛒"
@@ -49,14 +37,12 @@ def detect_store(link, title):
     if "myntra" in l or "myntra" in t: return "MYNTRA ❤️", "👗"
     if "nykaa" in l or "nykaa" in t: return "NYKAA 💖", "💄"
     if "meesho" in l or "meesho" in t: return "MEESHO 💜", "📦"
-    if "ajio" in l or "ajio" in t: return "AJIO 🖤", "👟"
-    return "TRUSTED DEAL 🌟", "🛒"
+    return "HANDPICKED DEAL 🌟", "🛒"
 
-# ৩. টেলিগ্রামে প্রফেশনাল পোস্ট পাঠানোর ফাংশন
+# ৩. প্রফেশনাল পোস্ট পাঠানো
 def send_deal(title, link, img_url, market_text):
-    token = os.getenv("BOT_TOKEN")
-    chat_id = os.getenv("CHAT_ID")
-    amazon_tag = "offerslive24-21" # আপনার আমাজন ট্যাগ
+    token, chat_id = os.getenv("BOT_TOKEN"), os.getenv("CHAT_ID")
+    amazon_tag = "offerslive24-21" 
 
     store_name, icon = detect_store(link, title)
     if "amazon.in" in link:
@@ -66,8 +52,7 @@ def send_deal(title, link, img_url, market_text):
         f"{icon} <b>STORE: {store_name}</b>\n\n"
         f"🔥 <b>{title.upper()}</b>\n\n"
         f"✅ <b>Status:</b> 100% Verified Loot\n"
-        f"📢 <b>Price Drop Alert! Grab it fast.</b>\n\n"
-        f"👉 <a href='{link}'>CLICK HERE TO BUY NOW</a>\n"
+        f"📢 <b>Limited Time Offer! Grab it fast.</b>\n\n"
         f"👉 <a href='{link}'>CLICK HERE TO BUY NOW</a>\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"{market_text}\n"
@@ -82,64 +67,49 @@ def send_deal(title, link, img_url, market_text):
         return r.status_code == 200
     except: return False
 
-# ৪. ইমেজ পরিষ্কার করার ফাংশন
-def get_clean_image(entry):
-    content = entry.get('summary', '') + entry.get('description', '')
-    soup = BeautifulSoup(content, 'html.parser')
-    img_tag = soup.find('img')
-    fallback = "https://cdn-icons-png.flaticon.com/512/1162/1162499.png"
-    if img_tag and img_tag.get('src'):
-        src = img_tag.get('src')
-        return fallback if any(x in src.lower() for x in ["pixel", "logo", "not-viewable"]) else src
-    return fallback
-
-# ৫. মেইন রানার (শক্তিশালী ব্ল্যাকলিস্ট সহ)
+# ৪. মেইন বট (স্মার্ট ডিল ফিল্টার সহ)
 def start_bot():
-    print("🚀 Starting Bot with Blacklist Filter...")
+    print("🚀 Bot checking for REAL deals only...")
     market_text = get_market_summary()
+    feeds = ["https://www.desidime.com/feed", "https://indiafreestuff.in/feed", "https://www.freekaamaal.com/feed"]
+    headers = {'User-Agent': 'Mozilla/5.0'}
     
-    feeds = [
-        "https://www.desidime.com/feed", 
-        "https://indiafreestuff.in/feed",
-        "https://www.freekaamaal.com/feed"
-    ]
-    
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-    
-    # শক্তিশালী ব্ল্যাকলিস্ট: এই শব্দগুলো থাকলে পোস্ট হবে না (আর্টিকেল ফিল্টার)
+    # শক্তিশালী ব্ল্যাকলিস্ট (আর্টিকেল এবং ব্লগ ফিল্টার করার জন্য)
     blacklist = [
-        "how to", "guide", "review", "expired", "7 ways", "boost your", "indian homes",
-        "detergent", "cleaner", "soap", "toothpaste", "shampoo", "best", "top", 
-        "worth", "every drop", "nutrition", "tips", "tricks", "registration", "alchemy"
+        "insurance", "health", "mental", "policy", "loan", "card", "benefit", 
+        "ways", "boost", "guide", "review", "how to", "7 ways", "tips", "care", 
+        "safety", "financial", "best floor", "detergent", "article"
     ]
 
     posted = 0
     for url in feeds:
         try:
-            print(f"📡 Checking: {url}")
             resp = requests.get(url, headers=headers, timeout=20)
             feed = feedparser.parse(resp.content)
             
-            for entry in feed.entries[:8]:
-                title = entry.title.split('|')[0].strip()
+            for entry in feed.entries[:10]:
+                title, link = entry.title.split('|')[0].strip(), entry.link.lower()
                 
-                # ব্ল্যাকলিস্ট চেক (টাইটেল থেকে আর্টিকেল ফিল্টার করা)
-                if any(word in title.lower() for word in blacklist):
-                    print(f"⏭️ Skipping Article: {title[:40]}...")
+                # ১. টাইটেল চেক (ব্ল্যাকলিস্ট)
+                if any(word in title.lower() for word in blacklist): continue
+                
+                # ২. লিঙ্ক চেক (যদি লিঙ্কে শপিং ক্যাটাগরি না থাকে তবে স্কিপ)
+                # ব্লগ বা আর্টিকেল লিঙ্কগুলো সাধারণত বড় হয় এবং তাতে /blog/ বা /self-care/ জাতীয় শব্দ থাকে
+                if any(word in link for word in ["blog", "article", "mental-health", "insurance", "news"]):
                     continue
                 
-                img = get_clean_image(entry)
+                # ৩. ইমেজ বের করা
+                soup = BeautifulSoup(entry.get('summary', '') + entry.get('description', ''), 'html.parser')
+                img_tag = soup.find('img')
+                img = img_tag.get('src') if img_tag else "https://cdn-icons-png.flaticon.com/512/1162/1162499.png"
+
                 if send_deal(title, entry.link, img, market_text):
                     print(f"✅ Success: {title[:30]}")
                     posted += 1
-                    time.sleep(15) # স্প্যাম প্রোটেকশন
+                    time.sleep(15)
                 if posted >= 5: break
             if posted >= 5: break
-        except Exception as e:
-            print(f"❌ Error in {url}: {e}")
-
-    if posted == 0:
-        print("🛑 No new verified deals found. Feeds might be empty or filtered.")
+        except: continue
 
 if __name__ == "__main__":
     start_bot()
