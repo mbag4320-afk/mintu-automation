@@ -56,4 +56,6 @@ def start_bot():
                 time.sleep(10) # স্প্যাম এড়াতে বিরতি
 
 if __name__ == "__main__":
+    # টেস্ট করার জন্য এই লাইনটি যোগ করুন
+send_deal("Test Deal", "https://google.com", "https://i.imgur.com/uP1pY9u.png")
     start_bot()
