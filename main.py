@@ -89,3 +89,79 @@ def start_bot():
 
 if __name__ == "__main__":
     start_bot()
+    def start_bot():
+    # এটি নিশ্চিত করবে যে বটটি কানেক্টেড আছে
+    print("🚀 Running connection test...")
+    send_deal("BOT CONNECTION TEST - SUCCESSFUL", "https://google.com", "https://i.imgur.com/uP1pY9u.png")
+    
+    feeds = [
+        "https://indiafreestuff.in/feed", 
+        "https://www.desidime.com/new.atom"
+    ]
+    
+    print("🔍 Searching for fresh deals...")
+    posted_count = 0
+    
+    # ফিল্টার একটু কমিয়ে দেওয়া হলো যেন ডিল পাওয়া যায়
+    blacklist = ["alchemy", "expired", "registration"]
+
+    for f_url in feeds:
+        feed = feedparser.parse(f_url)
+        print(f"📡 Checking {f_url}: Found {len(feed.entries)} items") # এটি লগে দেখাবে কয়টি আইটেম পেয়েছে
+        
+        for entry in feed.entries[:10]: # ১০টি আইটেম চেক করবে
+            title = entry.title.split('|')[0].strip()
+            
+            if any(word in title.lower() for word in blacklist):
+                continue
+            
+            img = get_clean_image(entry)
+            print(f"📤 Attempting to post: {title}") # লগে দেখাবে কোনটি পোস্ট করার চেষ্টা করছে
+            
+            if send_deal(title, entry.link, img):
+                posted_count += 1
+                time.sleep(15)
+            
+            if posted_count >= 5: break
+        if posted_count >= 5: break
+
+if __name__ == "__main__":
+   def start_bot():
+    # এটি নিশ্চিত করবে যে বটটি কানেক্টেড আছে
+    print("🚀 Running connection test...")
+    send_deal("BOT CONNECTION TEST - SUCCESSFUL", "https://google.com", "https://i.imgur.com/uP1pY9u.png")
+    
+    feeds = [
+        "https://indiafreestuff.in/feed", 
+        "https://www.desidime.com/new.atom"
+    ]
+    
+    print("🔍 Searching for fresh deals...")
+    posted_count = 0
+    
+    # ফিল্টার একটু কমিয়ে দেওয়া হলো যেন ডিল পাওয়া যায়
+    blacklist = ["alchemy", "expired", "registration"]
+
+    for f_url in feeds:
+        feed = feedparser.parse(f_url)
+        print(f"📡 Checking {f_url}: Found {len(feed.entries)} items") # এটি লগে দেখাবে কয়টি আইটেম পেয়েছে
+        
+        for entry in feed.entries[:10]: # ১০টি আইটেম চেক করবে
+            title = entry.title.split('|')[0].strip()
+            
+            if any(word in title.lower() for word in blacklist):
+                continue
+            
+            img = get_clean_image(entry)
+            print(f"📤 Attempting to post: {title}") # লগে দেখাবে কোনটি পোস্ট করার চেষ্টা করছে
+            
+            if send_deal(title, entry.link, img):
+                posted_count += 1
+                time.sleep(15)
+            
+            if posted_count >= 5: break
+        if posted_count >= 5: break
+
+if __name__ == "__main__":
+    start_bot()
+    
