@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests feedparser beautifulsoup4 lxml
+          pip install requests feedparser beautifulsoup4 lxml yfinance
 
       - name: Run Script
         env:
