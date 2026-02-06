@@ -4,16 +4,15 @@ import feedparser
 import time
 from bs4 import BeautifulSoup
 
+# ১. টেলিগ্রামে মেসেজ পাঠানোর ফাংশন
 def send_deal(title, link, img_url):
     token = os.getenv("BOT_TOKEN")
     chat_id = os.getenv("CHAT_ID")
     amazon_tag = "offerslive24-21" 
 
-    # আমাজন অ্যাফিলিয়েট লিঙ্ক তৈরি
     if "amazon.in" in link:
         link = f"{link}&tag={amazon_tag}" if "?" in link else f"{link}?tag={amazon_tag}"
     
-    # প্রফেশনাল ক্যাপশন
     caption = (
         f"🚨 <b>MEGA LOOT DEAL</b> 🚨\n\n"
         f"🛒 <b>{title.upper()}</b>\n\n"
@@ -34,54 +33,59 @@ def send_deal(title, link, img_url):
     except:
         return False
 
-def get_valid_image(entry):
-    # ডেসক্রিপশন থেকে ইমেজ বের করা
+# ২. ইমেজ ভ্যালিডেশন এবং ফিল্টারিং
+def get_clean_image(entry):
     content = entry.get('summary', '') + entry.get('description', '')
     soup = BeautifulSoup(content, 'html.parser')
-    img = soup.find('img')
+    img_tag = soup.find('img')
     
-    if img and img.get('src'):
-        img_url = img.get('src')
-        # কিছু ওয়েবসাইটের ছবি টেলিগ্রামে ব্লক থাকে, সেগুলো ফিল্টার করা
-        if "ytimg" in img_url or "not-viewable" in img_url or "pixel" in img_url:
-            return "https://i.imgur.com/uP1pY9u.png" # Default High Quality Banner
+    default_img = "https://i.imgur.com/uP1pY9u.png" # একটি হাই-কোয়ালিটি সেল ব্যানার
+
+    if img_tag and img_tag.get('src'):
+        img_url = img_tag.get('src')
+        
+        # ব্লকিং এবং রিজিয়ন রেস্ট্রিকটেড ইমেজ ফিল্টার
+        bad_patterns = ["ytimg", "not-viewable", "pixel", "logo", "banner", "placeholder"]
+        if any(pattern in img_url.lower() for pattern in bad_patterns):
+            return default_img
+            
+        # যদি ডেসক্রিপশনে খুব ছোট ছবি থাকে (আইকন বা লোগো), তবে ডিফল্ট ইমেজ ব্যবহার হবে
         return img_url
     
-    return "https://i.imgur.com/uP1pY9u.png"
+    return default_img
 
+# ৩. মেইন রানার
 def start_bot():
-    # ডিল সোর্স (বেশি ডিল পাওয়ার জন্য)
+    # ডিল সোর্সগুলো
     feeds = [
         "https://indiafreestuff.in/feed", 
-        "https://www.desidime.com/new.atom",
-        "https://www.freekaamaal.com/feed"
+        "https://www.desidime.com/new.atom"
     ]
     
-    print("🔍 Searching for professional deals...")
+    print("🔍 Searching for fresh deals...")
     posted_count = 0
     
-    # ফিল্টার করার জন্য নিষিদ্ধ শব্দ (এই শব্দগুলো থাকলে পোস্ট হবে না)
-    blacklist = ["alchemy", "course", "review", "how to", "guide", "expired", "registration"]
+    # অপ্রয়োজনীয় আর্টিকেল ফিল্টার (আপনার স্ক্রিনশটের মতো "Best Floor Cleaner" জাতীয় আর্টিকেল বাদ দেবে)
+    blacklist = ["best", "top", "review", "how to", "guide", "indian homes", "worth", "every drop", "alchemy"]
 
     for f_url in feeds:
         feed = feedparser.parse(f_url)
-        for entry in feed.entries[:6]: 
+        for entry in feed.entries[:8]: 
             title = entry.title.split('|')[0].strip()
             
-            # ব্ল্যাকলিস্ট ফিল্টার
+            # আর্টিকেল বা লিদটি বাদ দেওয়ার ফিল্টার
             if any(word in title.lower() for word in blacklist):
                 continue
             
-            img = get_valid_image(entry)
+            img = get_clean_image(entry)
             
-            # পোস্ট পাঠানো
             if send_deal(title, entry.link, img):
-                print(f"✅ Success: {title[:30]}")
+                print(f"✅ Posted: {title[:40]}...")
                 posted_count += 1
-                time.sleep(15) # স্প্যাম রোধে ১৫ সেকেন্ড গ্যাপ
+                time.sleep(20) # প্রতি পোস্টের মাঝে ২০ সেকেন্ড বিরতি (টেলিগ্রাম স্প্যাম প্রোটেকশন)
             
-            if posted_count >= 5: break # প্রতিবার সর্বোচ্চ ৫টি ডিল পোস্ট হবে
-        if posted_count >= 5: break
+            if posted_count >= 4: break # প্রতিবার সর্বোচ্চ ৪টি পোস্ট হবে
+        if posted_count >= 4: break
 
 if __name__ == "__main__":
     start_bot()
