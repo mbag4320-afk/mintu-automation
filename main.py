@@ -1,72 +1,94 @@
 import os
 import requests
 import feedparser
-import random
 import time
+import re
+from bs4 import BeautifulSoup
 
 # ১. সরাসরি টেলিগ্রামে ফটোসহ পোস্ট পাঠানোর ফাংশন
-def send_deal(title, link, img):
+def send_deal(title, link, img_url):
     token = os.getenv("BOT_TOKEN")
     chat_id = os.getenv("CHAT_ID")
-    amazon_tag = "offerslive24-21"
+    amazon_tag = "offerslive24-21" # আপনার আমাজন ট্যাগ
     
     # আমাজন লিঙ্ক হলে আপনার ট্যাগ যোগ হবে
     if "amazon.in" in link:
         link = f"{link}&tag={amazon_tag}" if "?" in link else f"{link}?tag={amazon_tag}"
     
+    # প্রফেশনাল ক্যাপশন ডিজাইন (HTML Mode ব্যবহার করা হয়েছে)
     caption = (
-        f"🚨 *MEGA LOOT DEAL* 🚨\n\n"
-        f"🛒 *{title.upper()}*\n\n"
-        f"🔥 *Status:* Hot Deal / Price Drop\n\n"
-        f"👉 [GRAB THIS DEAL NOW]({link})\n"
-        f"👉 [GRAB THIS DEAL NOW]({link})\n\n"
+        f"🔥 <b>{title.upper()}</b>\n\n"
+        f"💰 <b>Deal Status:</b> Live & Hot!\n"
+        f"📢 <b>Price Drop Alert! Grab it fast.</b>\n\n"
+        f"🛒 <b>Buy Now:</b> <a href='{link}'>Click Here to Buy</a>\n"
+        f"🛒 <b>Buy Now:</b> <a href='{link}'>Click Here to Buy</a>\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🎁 *More Stores:* [Amazon](https://www.amazon.in/gp/goldbox?tag={amazon_tag}) | [Flipkart](https://fktr.in/7WhPb8j)"
+        f"🎁 <b>Extra Stores:</b> "
+        f"<a href='https://www.amazon.in/gp/goldbox?tag={amazon_tag}'>Amazon</a> | "
+        f"<a href='https://fktr.in/7WhPb8j'>Flipkart</a>\n"
+        f"⚡ <i>Join @YourChannelUsernaem for more Loots!</i>"
     )
     
     url = f"https://api.telegram.org/bot{token}/sendPhoto"
-    payload = {"chat_id": chat_id, "photo": img, "caption": caption, "parse_mode": "Markdown"}
-    r = requests.post(url, data=payload)
-    print(f"Posted: {title} | Status: {r.status_code}")
+    payload = {
+        "chat_id": chat_id, 
+        "photo": img_url, 
+        "caption": caption, 
+        "parse_mode": "HTML"
+    }
+    
+    try:
+        r = requests.post(url, data=payload)
+        print(f"Posted: {title[:30]}... | Status: {r.status_code}")
+    except Exception as e:
+        print(f"Error sending to Telegram: {e}")
 
-# ২. ডিল হান্টিং লজিক
+# ২. ডিল থেকে ইমেজ খুঁজে বের করার ফাংশন
+def get_image_from_entry(entry):
+    # ১. যদি সরাসরি মিডিয়া লিঙ্ক থাকে
+    if 'links' in entry:
+        for link in entry.links:
+            if 'image' in link.get('type', ''):
+                return link.get('href')
+    
+    # ২. ডেসক্রিপশন বা সামারি থেকে ছবি খোঁজা (BeautifulSoup ব্যবহার করে)
+    content = entry.get('summary', '') or entry.get('description', '')
+    soup = BeautifulSoup(content, 'html.parser')
+    img_tag = soup.find('img')
+    
+    if img_tag and img_tag.get('src'):
+        return img_tag.get('src')
+    
+    # ৩. যদি কোনো ছবি না পাওয়া যায় তবে একটি প্রফেশনাল ডিফল্ট ইমেজ
+    return "https://i.imgur.com/uP1pY9u.png" # এটি একটি সুন্দর 'Sale' ব্যানার
+
+# ৩. ডিল হান্টিং লজিক
 def start_bot():
-    # ডিল সোর্সগুলো
     feeds = ["https://indiafreestuff.in/feed", "https://www.desidime.com/new.atom"]
     
-    all_entries = []
+    processed_count = 0
     for f_url in feeds:
-        feed = feedparser.parse(f_url, agent='Mozilla/5.0')
-        if feed.entries:
-            all_entries.extend(feed.entries[:5])
-
-    # ডাইনামিক ইমেজের লিস্ট
-    banners = [
-        "https://img.freepik.com/free-vector/special-offer-modern-sale-banner-template_1017-20667.jpg",
-        "https://img.freepik.com/free-vector/gradient-mobile-store-sale-background_23-2150319114.jpg",
-        "https://img.freepik.com/free-vector/fashion-sale-banner-template_23-2148522533.jpg"
-    ]
-
-    if all_entries:
-        # ওয়েবসাইট থেকে পাওয়া ডিলগুলো পোস্ট হবে
-        for entry in all_entries[:3]:
+        print(f"Checking feed: {f_url}")
+        feed = feedparser.parse(f_url)
+        
+        for entry in feed.entries[:5]: # প্রতিটি সাইট থেকে লেটেস্ট ৫টি ডিল দেখবে
             title = entry.title.split('|')[0].strip()
-            # গাইড বা রিভিউ বাদ দেওয়ার ফিল্টার
-            if any(x in title.lower() for x in ["how to", "review", "guide"]): continue
             
-            send_deal(title, entry.link, random.choice(banners))
-            time.sleep(5)
-    else:
-        # যদি কোনো সাইট থেকে ডিল না পাওয়া যায়, তবে এই "সেরা ৩টি ডিল" অবশ্যই যাবে
-        print("No live deals found, sending fallback deals...")
-        fallback_deals = [
-            {"t": "Top Budget Smartphones Under 15000", "l": "https://www.amazon.in/s?k=smartphones+under+15000"},
-            {"t": "Best Selling Smartwatches & Gadgets", "l": "https://www.amazon.in/s?k=smartwatches"},
-            {"t": "Today's Biggest Price Drops on Laptops", "l": "https://www.amazon.in/s?k=laptops+deals"}
-        ]
-        for deal in fallback_deals:
-            send_deal(deal['t'], deal['l'], random.choice(banners))
-            time.sleep(5)
+            # ফিল্টার: বাজে কন্টেন্ট বাদ দেওয়া
+            if any(x in title.lower() for x in ["how to", "review", "guide", "expired"]): 
+                continue
+            
+            # ইমেজ এবং লিঙ্ক সংগ্রহ
+            img_url = get_image_from_entry(entry)
+            link = entry.link
+            
+            # পোস্ট পাঠানো
+            send_deal(title, link, img_url)
+            processed_count += 1
+            time.sleep(8) # টেলিগ্রাম স্প্যাম রোধে বিরতি
+            
+            if processed_count >= 10: break # একবারে ১০টির বেশি পোস্ট করবে না
 
 if __name__ == "__main__":
+    # BeautifulSoup লাইব্রেরি না থাকলে ইন্সটল করতে হবে: pip install beautifulsoup4
     start_bot()
