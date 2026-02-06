@@ -2,34 +2,57 @@ import os
 import requests
 import feedparser
 import time
+import yfinance as yf
 from bs4 import BeautifulSoup
 
-# ১. টেলিগ্রামে প্রফেশনাল ডিল পোস্ট পাঠানোর ফাংশন
-def send_deal(title, link, img_url, store_name):
+# ১. মার্কেট ডেটা সংগ্রহ করার ফাংশন
+def get_market_summary():
+    try:
+        # ক্রিপ্টো প্রাইস (BTC & ETH) - CoinGecko থেকে
+        crypto_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
+        crypto_data = requests.get(crypto_url, timeout=10).json()
+        btc_price = f"${crypto_data['bitcoin']['usd']:,}"
+        eth_price = f"${crypto_data['ethereum']['usd']:,}"
+
+        # স্টক মার্কেট এবং গোল্ড/সিলভার - Yahoo Finance থেকে
+        # ^NSEI (Nifty 50), ^BSESN (Sensex), GC=F (Gold), SI=F (Silver)
+        tickers = ["^NSEI", "^BSESN", "GC=F", "SI=F"]
+        data = yf.download(tickers, period="1d", interval="1m")['Close'].iloc[-1]
+        
+        nifty = f"{data['^NSEI']:.2f}"
+        sensex = f"{data['^BSESN']:.2f}"
+        gold = f"${data['GC=F']:.2f}"   # প্রতি আউন্স (USD)
+        silver = f"${data['SI=F']:.2f}" # প্রতি আউন্স (USD)
+
+        summary = (
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📊 <b>MARKET OVERVIEW</b>\n"
+            f"₿ <b>BTC:</b> {btc_price} | <b>ETH:</b> {eth_price}\n"
+            f"📀 <b>Gold:</b> {gold} | <b>Silver:</b> {silver}\n"
+            f"📈 <b>Nifty 50:</b> {nifty} | <b>Sensex:</b> {sensex}\n"
+        )
+        return summary
+    except Exception as e:
+        print(f"Market data error: {e}")
+        return ""
+
+# ২. টেলিগ্রামে পোস্ট পাঠানোর ফাংশন
+def send_deal(title, link, img_url, market_text):
     token = os.getenv("BOT_TOKEN")
     chat_id = os.getenv("CHAT_ID")
-    amazon_tag = "offerslive24-21" # আপনার আমাজন ট্যাগ
-    
-    # আমাজন লিঙ্ক হলে আপনার ট্যাগ যোগ হবে
+    amazon_tag = "offerslive24-21" 
+
     if "amazon.in" in link:
         link = f"{link}&tag={amazon_tag}" if "?" in link else f"{link}?tag={amazon_tag}"
-        store_display = "🛒 Store: AMAZON 🇮🇳"
-    elif "flipkart.com" in link:
-        store_display = "🛒 Store: FLIPKART 🛍️"
-    else:
-        store_display = f"🛒 Store: {store_name.upper()}"
     
-    # প্রফেশনাল ক্যাপশন (মানুষের ভরসা জেতার জন্য ডিজাইন)
     caption = (
         f"🌟 <b>TRUSTED LOOT DEAL</b> 🌟\n\n"
         f"🔥 <b>{title.upper()}</b>\n\n"
-        f"{store_display}\n"
         f"✅ <b>Status:</b> Verified & Handpicked\n"
         f"📢 <b>Price Drop Alert! Grab it now.</b>\n\n"
-        f"👉 <a href='{link}'>CLICK HERE TO BUY NOW</a>\n"
         f"👉 <a href='{link}'>CLICK HERE TO BUY NOW</a>\n\n"
+        f"{market_text}" # এখানে মার্কেট ডেটা যুক্ত হবে
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🎁 <b>More Deals:</b> <a href='https://www.amazon.in/gp/goldbox?tag={amazon_tag}'>Today's Deals</a>\n"
         f"⚡ <i>Join @offers_live_24 for verified loots!</i>"
     )
     
@@ -42,62 +65,43 @@ def send_deal(title, link, img_url, store_name):
     except:
         return False
 
-# ২. ডিল থেকে আসল ছবি বের করার ফাংশন
 def get_clean_image(entry):
     content = entry.get('summary', '') + entry.get('description', '')
     soup = BeautifulSoup(content, 'html.parser')
     img = soup.find('img')
-    
-    # ডিফল্ট প্রফেশনাল শপিং ব্যানার (যদি ছবি না পাওয়া যায়)
     fallback_img = "https://cdn-icons-png.flaticon.com/512/1162/1162499.png"
-
     if img and img.get('src'):
         img_url = img.get('src')
-        if "pixel" in img_url or "logo" in img_url:
-            return fallback_img
+        if "pixel" in img_url or "logo" in img_url: return fallback_img
         return img_url
     return fallback_img
 
-# ৩. মেইন রানার (বিশ্বস্ত সোর্স থেকে ডিল খোঁজা)
 def start_bot():
-    # ভারতের সবচেয়ে বিশ্বস্ত ৩টি ডিল ফিড
-    feeds = [
-        {"name": "DesiDime", "url": "https://www.desidime.com/new.atom"},
-        {"name": "IndiaFreeStuff", "url": "https://indiafreestuff.in/feed"},
-        {"name": "FreeKaaMaal", "url": "https://www.freekaamaal.com/feed"}
-    ]
+    # প্রথমে মার্কেট ডেটা একবার সংগ্রহ করে নিচ্ছি
+    market_text = get_market_summary()
     
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+    feeds = ["https://www.desidime.com/new.atom", "https://indiafreestuff.in/feed"]
+    headers = {'User-Agent': 'Mozilla/5.0'}
     
-    print("🔍 Searching for trusted deals...")
     posted_count = 0
-    
-    # ফিল্টার: আর্টিকেল বা অপ্রয়োজনীয় কন্টেন্ট বাদ দেওয়ার জন্য
-    blacklist = ["how to", "guide", "review", "expired", "registration", "best floor cleaner", "indian homes"]
+    blacklist = ["how to", "guide", "review", "expired", "registration"]
 
-    for source in feeds:
+    for f_url in feeds:
         try:
-            resp = requests.get(source['url'], headers=headers, timeout=15)
+            resp = requests.get(f_url, headers=headers, timeout=15)
             feed = feedparser.parse(resp.content)
             
-            for entry in feed.entries[:5]:
+            for entry in feed.entries[:3]:
                 title = entry.title.split('|')[0].strip()
-                
-                # যদি টাইটেলে ব্ল্যাকলিস্ট করা কোনো শব্দ থাকে তবে তা বাদ দেবে
-                if any(word in title.lower() for word in blacklist):
-                    continue
+                if any(word in title.lower() for word in blacklist): continue
                 
                 img = get_clean_image(entry)
-                link = entry.link
-                
-                if send_deal(title, link, img, source['name']):
-                    print(f"✅ Success: {title[:30]} from {source['name']}")
+                if send_deal(title, entry.link, img, market_text):
                     posted_count += 1
-                    time.sleep(15) # স্প্যাম রোধে বিরতি
+                    time.sleep(15)
             
-            if posted_count >= 6: break # একবারে ৬টির বেশি পোস্ট করবে না
-        except:
-            continue
+            if posted_count >= 5: break
+        except: continue
 
 if __name__ == "__main__":
     start_bot()
