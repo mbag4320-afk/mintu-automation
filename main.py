@@ -77,31 +77,45 @@ def get_clean_image(entry):
     return fallback_img
 
 def start_bot():
-    # প্রথমে মার্কেট ডেটা একবার সংগ্রহ করে নিচ্ছি
+    print("📈 Fetching market summary...")
     market_text = get_market_summary()
     
-    feeds = ["https://www.desidime.com/new.atom", "https://indiafreestuff.in/feed"]
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    # ৩টি প্রধান ডিল সোর্স
+    feeds = [
+        {"name": "DesiDime", "url": "https://www.desidime.com/new.atom"},
+        {"name": "IFS", "url": "https://indiafreestuff.in/feed"},
+        {"name": "FreeKaaMaal", "url": "https://www.freekaamaal.com/feed"}
+    ]
     
+    headers = {'User-Agent': 'Mozilla/5.0'}
     posted_count = 0
     blacklist = ["how to", "guide", "review", "expired", "registration"]
 
-    for f_url in feeds:
+    print("🔍 Searching for deals...")
+    for source in feeds:
         try:
-            resp = requests.get(f_url, headers=headers, timeout=15)
+            resp = requests.get(source['url'], headers=headers, timeout=15)
             feed = feedparser.parse(resp.content)
+            print(f"📡 Checking {source['name']}: Found {len(feed.entries)} items")
             
-            for entry in feed.entries[:3]:
+            for entry in feed.entries[:5]:
                 title = entry.title.split('|')[0].strip()
                 if any(word in title.lower() for word in blacklist): continue
                 
                 img = get_clean_image(entry)
+                # মেসেজ পাঠানোর চেষ্টা
                 if send_deal(title, entry.link, img, market_text):
+                    print(f"✅ Posted Success: {title[:30]}")
                     posted_count += 1
                     time.sleep(15)
-            
+                
+                if posted_count >= 5: break
             if posted_count >= 5: break
-        except: continue
+        except Exception as e:
+            print(f"Error at {source['name']}: {e}")
+
+    if posted_count == 0:
+        print("⚠️ No valid new deals found at this moment.")
 
 if __name__ == "__main__":
     start_bot()
