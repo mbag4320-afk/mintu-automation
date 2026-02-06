@@ -2,8 +2,8 @@ name: Income Automation Bot
 
 on:
   schedule:
-    - cron: '0 6,12,18 * * *' # প্রতিদিন নির্দিষ্ট সময়ে চলবে
-  workflow_dispatch:      # ম্যানুয়ালি রান করার জন্য
+    - cron: '0 */2 * * *' # প্রতি ২ ঘণ্টা পরপর চলবে
+  workflow_dispatch:      # নিজে টেস্ট করার বাটন দেবে
 
 jobs:
   build:
@@ -19,11 +19,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install requests feedparser beautifulsoup4 lxml
 
       - name: Run Script
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
         run: python main.py
