@@ -74,11 +74,12 @@ def start_bot():
     feeds = ["https://www.desidime.com/feed", "https://indiafreestuff.in/feed", "https://www.freekaamaal.com/feed"]
     headers = {'User-Agent': 'Mozilla/5.0'}
     
-    # শক্তিশালী ব্ল্যাকলিস্ট (আর্টিকেল এবং ব্লগ ফিল্টার করার জন্য)
+    # শক্তিশালী ব্ল্যাকলিস্ট (আর্টিকেল, হিন্দি গাইড এবং অপ্রয়োজনীয় কন্টেন্ট ফিল্টার করার জন্য)
     blacklist = [
-        "insurance", "health", "mental", "policy", "loan", "card", "benefit", 
-        "ways", "boost", "guide", "review", "how to", "7 ways", "tips", "care", 
-        "safety", "financial", "best floor", "detergent", "article"
+        "insurance", "policy", "loan", "benefit", "ways", "boost", "guide", "review", 
+        "how to", "7 ways", "tips", "care", "safety", "financial", "best floor", 
+        "detergent", "shampoo", "toothpaste", "kaise", "tarike", "nikale", "kya hai", 
+        "shubh", "shakal", "expired", "tricks", "article", "mental", "health", "card"
     ]
 
     posted = 0
@@ -88,18 +89,14 @@ def start_bot():
             feed = feedparser.parse(resp.content)
             
             for entry in feed.entries[:10]:
-                title, link = entry.title.split('|')[0].strip(), entry.link.lower()
+                title = entry.title.split('|')[0].strip()
+                link = entry.link.lower()
                 
                 # ১. টাইটেল চেক (ব্ল্যাকলিস্ট)
-                if any(word in title.lower() for word in blacklist) # হিন্দি গাইড এবং আর্টিকেল ফিল্টার করার জন্য উন্নত ব্ল্যাকলিস্ট
-    blacklist = [
-        "how to", "guide", "review", "expired", "ways", "boost", "tips", "tricks", 
-        "kaise", "tarike", "nikale", "kya hai", "insurance", "policy", "loan",
-        "best floor", "detergent", "shampoo", "toothpaste", "shubh", "shakal"
-    ]: continue
+                if any(word in title.lower() for word in blacklist):
+                    continue
                 
-                # ২. লিঙ্ক চেক (যদি লিঙ্কে শপিং ক্যাটাগরি না থাকে তবে স্কিপ)
-                # ব্লগ বা আর্টিকেল লিঙ্কগুলো সাধারণত বড় হয় এবং তাতে /blog/ বা /self-care/ জাতীয় শব্দ থাকে
+                # ২. লিঙ্ক চেক (ব্লগ বা আর্টিকেল লিঙ্ক ফিল্টার)
                 if any(word in link for word in ["blog", "article", "mental-health", "insurance", "news"]):
                     continue
                 
