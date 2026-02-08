@@ -6,7 +6,7 @@ import math
 import yfinance as yf
 from bs4 import BeautifulSoup
 
-# ১. মার্কেট সামারি (রবিবার বন্ধ থাকলে সেটি জানাবে)
+# ১. মার্কেট সামারি সংগ্রহ
 def get_market_summary():
     try:
         crypto_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
@@ -22,14 +22,13 @@ def get_market_summary():
             except: return "Closed"
         
         return (
-            f"📊 <b>MARKET WATCH (WEEKEND)</b>\n"
             f"₿ <b>BTC:</b> {btc} | <b>ETH:</b> {eth}\n"
             f"📀 <b>Gold:</b> ${clean('GC=F')} | <b>Silver:</b> ${clean('SI=F')}\n"
-            f"📈 <b>Nifty:</b> {clean('^NSEI')} | <b>Sensex:</b> {clean('^BSESN')}\n"
+            f"📈 <b>Nifty:</b> {clean('^NSEI')} | <b>Sensex:</b> {clean('^BSESN')}"
         )
     except: return "📊 Market Watch: Updating data..."
 
-# ২. ব্র্যান্ড লিস্ট বাড়ানো হলো (Samsung, MI, Boat, Puma সহ)
+# ২. শুধুমাত্র বড় ব্র্যান্ড শনাক্ত করা
 def detect_trusted_store(link, title):
     l, t = link.lower(), title.lower()
     brands = {
@@ -48,12 +47,11 @@ def detect_trusted_store(link, title):
         if key in l or key in t: return val
     return None, None
 
-# ৩. প্রফেশনাল ডিল পোস্ট
+# ৩. প্রফেশনাল ডিল পোস্ট পাঠানোর ফাংশন
 def send_deal(title, link, img_url, market_text, store_info):
     token, chat_id = os.getenv("BOT_TOKEN"), os.getenv("CHAT_ID")
     store_name, icon = store_info
     
-    # আমাজন ট্যাগ ফিক্স
     if "amazon.in" in link:
         link = f"{link}&tag=offerslive24-21" if "?" in link else f"{link}?tag=offerslive24-21"
 
@@ -64,7 +62,7 @@ def send_deal(title, link, img_url, market_text, store_info):
         f"📢 <b>Limited Time Deal! Grab it fast.</b>\n\n"
         f"👉 <a href='{link}'>CLICK HERE TO BUY NOW</a>\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"{market_text}\n"
+        f"📊 <b>MARKET OVERVIEW</b>\n{market_text}\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"⚡ <i>Join @offers_live_24 for Mega Loots!</i>"
     )
@@ -76,9 +74,12 @@ def send_deal(title, link, img_url, market_text, store_info):
         return r.status_code == 200
     except: return False
 
+# ৪. মেইন প্রসেসর
 def start_bot():
-    print("🚀 Mega Deal Bot checking for BRANDED items...")
+    print("🚀 Mega Deal Bot started. Running analysis...")
+    token, chat_id = os.getenv("BOT_TOKEN"), os.getenv("CHAT_ID")
     market_text = get_market_summary()
+    
     feeds = [
         "https://www.desidime.com/feed", 
         "https://indiafreestuff.in/feed",
@@ -86,17 +87,15 @@ def start_bot():
     ]
     
     headers = {'User-Agent': 'Mozilla/5.0'}
-    posted = 0
+    posted_count = 0
 
     for url in feeds:
         try:
             resp = requests.get(url, headers=headers, timeout=20)
             feed = feedparser.parse(resp.content)
             for entry in feed.entries[:15]:
-                title = entry.title.split('|')[0].strip()
-                link = entry.link
+                title, link = entry.title.split('|')[0].strip(), entry.link
                 
-                # ব্র্যান্ড চেক
                 store_info = detect_trusted_store(link, title)
                 if not store_info[0]: continue 
                 
@@ -105,25 +104,17 @@ def start_bot():
 
                 if send_deal(title, link, img, market_text, store_info):
                     print(f"✅ Posted: {title[:30]}")
-                    posted += 1
+                    posted_count += 1
                     time.sleep(15)
-                if posted >= 5: break
-            if posted >= 5: break
+                if posted_count >= 5: break
+            if posted_count >= 5: break
         except: continue
 
-    if posted == 0:
-        print("🛑 Result: Today is a slow day for brands. No new loot found.")
-
-if __name__ == "__main__":
-    start_bot()
-    # start_bot ফাংশনের একদম শেষের দিকে এই অংশটুকু আপডেট করুন
-    if posted == 0:
+    # যদি কোনো ব্র্যান্ডের ডিল না পাওয়া যায়, তবে শুধু মার্কেট আপডেট পাঠাবে
+    if posted_count == 0:
         print("🛑 No brand-specific loots found. Sending Market Summary only...")
-        # ডিল না পাওয়া গেলেও শুধু মার্কেট সামারি পাঠানোর জন্য
-        token, chat_id = os.getenv("BOT_TOKEN"), os.getenv("CHAT_ID")
-        # একটি সুন্দর ব্যানার দিয়ে মার্কেট আপডেট পাঠানো
         market_msg = (
-            f"📈 <b>MARKET UPDATE (DAILY)</b>\n\n"
+            f"📊 <b>MARKET WATCH (DAILY UPDATE)</b>\n\n"
             f"{market_text}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📢 <i>No mega loots found right now. Stay tuned for upcoming deals!</i>\n"
@@ -131,3 +122,6 @@ if __name__ == "__main__":
         )
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         requests.post(url, data={"chat_id": chat_id, "text": market_msg, "parse_mode": "HTML"})
+
+if __name__ == "__main__":
+    start_bot()
