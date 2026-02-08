@@ -91,7 +91,12 @@ def start_bot():
                 title, link = entry.title.split('|')[0].strip(), entry.link.lower()
                 
                 # ১. টাইটেল চেক (ব্ল্যাকলিস্ট)
-                if any(word in title.lower() for word in blacklist): continue
+                if any(word in title.lower() for word in blacklist) # হিন্দি গাইড এবং আর্টিকেল ফিল্টার করার জন্য উন্নত ব্ল্যাকলিস্ট
+    blacklist = [
+        "how to", "guide", "review", "expired", "ways", "boost", "tips", "tricks", 
+        "kaise", "tarike", "nikale", "kya hai", "insurance", "policy", "loan",
+        "best floor", "detergent", "shampoo", "toothpaste", "shubh", "shakal"
+    ]: continue
                 
                 # ২. লিঙ্ক চেক (যদি লিঙ্কে শপিং ক্যাটাগরি না থাকে তবে স্কিপ)
                 # ব্লগ বা আর্টিকেল লিঙ্কগুলো সাধারণত বড় হয় এবং তাতে /blog/ বা /self-care/ জাতীয় শব্দ থাকে
