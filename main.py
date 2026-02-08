@@ -116,3 +116,18 @@ def start_bot():
 
 if __name__ == "__main__":
     start_bot()
+    # start_bot ফাংশনের একদম শেষের দিকে এই অংশটুকু আপডেট করুন
+    if posted == 0:
+        print("🛑 No brand-specific loots found. Sending Market Summary only...")
+        # ডিল না পাওয়া গেলেও শুধু মার্কেট সামারি পাঠানোর জন্য
+        token, chat_id = os.getenv("BOT_TOKEN"), os.getenv("CHAT_ID")
+        # একটি সুন্দর ব্যানার দিয়ে মার্কেট আপডেট পাঠানো
+        market_msg = (
+            f"📈 <b>MARKET UPDATE (DAILY)</b>\n\n"
+            f"{market_text}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📢 <i>No mega loots found right now. Stay tuned for upcoming deals!</i>\n"
+            f"⚡ Join @offers_live_24"
+        )
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        requests.post(url, data={"chat_id": chat_id, "text": market_msg, "parse_mode": "HTML"})
