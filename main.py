@@ -69,17 +69,17 @@ def send_deal(title, link, img_url, market_text):
 
 # ৪. মেইন বট (স্মার্ট ডিল ফিল্টার সহ)
 def start_bot():
-    print("🚀 Bot checking for REAL deals only...")
+    print("🚀 Bot running with Enhanced Filtering...")
     market_text = get_market_summary()
     feeds = ["https://www.desidime.com/feed", "https://indiafreestuff.in/feed", "https://www.freekaamaal.com/feed"]
     headers = {'User-Agent': 'Mozilla/5.0'}
     
-    # শক্তিশালী ব্ল্যাকলিস্ট (আর্টিকেল, হিন্দি গাইড এবং অপ্রয়োজনীয় কন্টেন্ট ফিল্টার করার জন্য)
+    # শক্তিশালী ব্ল্যাকলিস্ট (আপনার স্ক্রিনশটের সমস্যাগুলো সমাধান করতে এই শব্দগুলো যোগ করা হয়েছে)
     blacklist = [
-        "insurance", "policy", "loan", "benefit", "ways", "boost", "guide", "review", 
-        "how to", "7 ways", "tips", "care", "safety", "financial", "best floor", 
-        "detergent", "shampoo", "toothpaste", "kaise", "tarike", "nikale", "kya hai", 
-        "shubh", "shakal", "expired", "tricks", "article", "mental", "health", "card"
+        "best", "top", "dishwash", "gel", "kitchen", "reel", "alchemy", "course", 
+        "how to", "guide", "review", "ways", "boost", "tips", "care", "safety", 
+        "kaise", "tarike", "nikale", "kya hai", "insurance", "policy", "loan", 
+        "detergent", "shampoo", "toothpaste", "shubh", "shakal", "article"
     ]
 
     posted = 0
@@ -92,11 +92,11 @@ def start_bot():
                 title = entry.title.split('|')[0].strip()
                 link = entry.link.lower()
                 
-                # ১. টাইটেল চেক (ব্ল্যাকলিস্ট)
+                # ১. টাইটেল চেক
                 if any(word in title.lower() for word in blacklist):
                     continue
                 
-                # ২. লিঙ্ক চেক (ব্লগ বা আর্টিকেল লিঙ্ক ফিল্টার)
+                # ২. লিঙ্ক চেক
                 if any(word in link for word in ["blog", "article", "mental-health", "insurance", "news"]):
                     continue
                 
