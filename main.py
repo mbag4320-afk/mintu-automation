@@ -1,17 +1,15 @@
+import os
 import requests
 import datetime
 
-# আপনার তথ্য এখানে দিন
-TOKEN = "আপনার_বট_টোকেন"
-CHAT_ID = "আপনার_চ্যাট_আইডি"
+# GitHub Secrets থেকে অটোমেটিক টোকেন ও আইডি নেওয়ার জন্য
+TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
 def get_market_data():
-    # এখানে ক্রিপ্টো এবং স্টকের দামের এপিআই কল হবে (উদাহরণস্বরূপ)
-    # আপনি যদি নির্দিষ্ট কোনো সাইট থেকে ডেটা নেন, তবে সেই লজিক এখানে থাকবে
-    # আমি একটি স্যাম্পল ফরম্যাট দিচ্ছি যা দেখতে প্রফেশনাল লাগবে
-    
     now = datetime.datetime.now().strftime("%d-%m-%Y %H:%M")
     
+    # প্রফেশনাল মেসেজ ফরম্যাট
     message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
     message += f"📅 _Date: {now}_\n\n"
     
@@ -23,13 +21,17 @@ def get_market_data():
     message += f"• Nifty: `25,756.30` ✅\n"
     message += f"• Gold: `Closed (Weekend)` 🔒\n\n"
     
-    message += f"📢 *Alert:* No mega loots found right now. Stay tuned for upcoming deals!\n\n"
+    message += f"📢 *Alert:* Stay tuned for upcoming deals!\n\n"
     message += f"🔗 [Join Our Channel](https://t.me/offers_live_24)\n"
     message += f"🚀 *Powered by Mintu Automation*"
     
     return message
 
 def send_telegram_msg(text):
+    if not TOKEN or not CHAT_ID:
+        print("Error: BOT_TOKEN or CHAT_ID not found in Secrets!")
+        return
+
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
@@ -37,7 +39,13 @@ def send_telegram_msg(text):
         "parse_mode": "Markdown",
         "disable_web_page_preview": False
     }
-    requests.post(url, json=payload)
+    response = requests.post(url, json=payload)
+    
+    if response.status_code == 200:
+        print("Success: Message sent to Telegram!")
+    else:
+        print(f"Failed: Status Code {response.status_code}")
+        print(response.text)
 
 if __name__ == "__main__":
     data = get_market_data()
