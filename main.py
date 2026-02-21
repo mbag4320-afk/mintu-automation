@@ -3,12 +3,11 @@ import requests
 import datetime
 import random
 
-# GitHub Secrets থেকে অটোমেটিক টোকেন ও আইডি নেওয়ার জন্য
+# GitHub Secrets থেকে তথ্য নেওয়া
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 def get_inspiration():
-    # কিছু অনুপ্রেরণামূলক উক্তি ও টিপস (আপনি এখানে নিজের মতো আরও যোগ করতে পারেন)
     tips = [
         "🌱 আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।",
         "👨‍👩‍👧‍👦 পরিবারের সাথে কাটানো সময় হলো জীবনের সেরা বিনিয়োগ।",
@@ -22,13 +21,11 @@ def get_inspiration():
     return random.choice(tips)
 
 def get_market_data():
-    # টাইম জোন সেটআপ
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
     formatted_time = now.strftime("%d-%m-%Y %I:%M %p")
-    
-    # ইনস্পিরেশন টিপস নেওয়া
     daily_tip = get_inspiration()
     
+    # মেসেজ ফরম্যাট (Caption হিসেবে থাকবে)
     message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
     message += f"━━━━━━━━━━━━━━━━━━━━\n"
     message += f"📅 *Date:* `{formatted_time}`\n\n"
@@ -41,7 +38,6 @@ def get_market_data():
     message += f"• Nifty: `25,756.30` ✅\n"
     message += f"• Gold: `Closed (Weekend)` 🔒\n\n"
     
-    # নতুন টিপস সেকশন
     message += f"✨ *Daily Inspiration & Tips:*\n"
     message += f"_{daily_tip}_\n"
     
@@ -50,11 +46,15 @@ def get_market_data():
     
     return message
 
-def send_telegram_msg(text):
+def send_telegram_animation(text):
     if not TOKEN or not CHAT_ID:
         return
 
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    # এখানে একটি সুন্দর শান্ত বা মোটিভেশনাল অ্যানিমেশনের লিঙ্ক দেওয়া হয়েছে
+    # আপনি চাইলে আপনার পছন্দের যেকোনো GIF লিঙ্ক এখানে দিতে পারেন
+    animation_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJndXIzZmx6bmx3bm93eHptZ3RsczZ4bm93eHptZ3RsczZ4bm8mZXA9djFfaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/3o7TKVUn7iM8FMEU24/giphy.gif"
+
+    url = f"https://api.telegram.org/bot{TOKEN}/sendAnimation"
     
     keyboard = {
         "inline_keyboard": [
@@ -67,7 +67,8 @@ def send_telegram_msg(text):
 
     payload = {
         "chat_id": CHAT_ID,
-        "text": text,
+        "animation": animation_url,
+        "caption": text, # আপনার টেক্সটটি এখন ক্যাপশন হিসেবে যাবে
         "parse_mode": "Markdown",
         "reply_markup": keyboard
     }
@@ -76,4 +77,4 @@ def send_telegram_msg(text):
 
 if __name__ == "__main__":
     data = get_market_data()
-    send_telegram_msg(data)
+    send_telegram_animation(data)
