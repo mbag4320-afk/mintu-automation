@@ -1,7 +1,6 @@
 import os
 import requests
 import datetime
-import random
 
 # GitHub Secrets
 TOKEN = os.getenv("BOT_TOKEN")
@@ -20,31 +19,29 @@ def get_ai_inspiration():
             "Authorization": f"Bearer {MISTRAL_API_KEY}"
         }
         
-        # Mistral-কে প্রম্পট দেওয়া
+        # Mistral-এর জন্য প্রম্পট
         data = {
-            "model": "mistral-tiny",
+            "model": "open-mistral-7b",
             "messages": [
-                {"role": "user", "content": "Write a one-sentence unique motivational or family life tip in Bengali with a relevant emoji. Keep it simple and positive."}
+                {"role": "user", "content": "Write a one-sentence unique motivational or family life tip in Bengali with a relevant emoji. No intro, just the quote."}
             ]
         }
         
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.post(url, headers=headers, json=data, timeout=10)
         result = response.json()
         
         if 'choices' in result:
-            ai_text = result['choices'][0]['message']['content'].strip()
-            return ai_text
+            return result['choices'][0]['message']['content'].strip()
         else:
             return "💡 ধৈর্য ধরুন, ভালো জিনিস পেতে কিছুটা সময় লাগে।"
     except Exception as e:
-        print(f"Mistral Error: {e}")
+        print(f"Error: {e}")
         return "🚀 সাফল্যের মূল চাবিকাঠি হলো কাজ শুরু করা এবং হাল না ছাড়া।"
 
 def get_market_data():
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
     formatted_time = now.strftime("%d-%m-%Y %I:%M %p")
     
-    # Mistral AI থেকে টিপস নেওয়া
     daily_tip = get_ai_inspiration()
     
     message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
@@ -69,8 +66,8 @@ def get_market_data():
 def send_telegram_animation(text):
     if not TOKEN or not CHAT_ID: return
 
-    # নতুন স্টেবল এবং সুন্দর অ্যানিমেশন (Nature/Sky)
-    animation_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueXpueXpueXpueXpueXpueXpueXpueXpueXpueXpueXpueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKMGpxXkoGZWAX6/giphy.gif"
+    # এই লিঙ্কটি সরাসরি একটি ভিডিও ফাইল, যা টেলিগ্রাম অ্যানিমেশন হিসেবে দেখাবে
+    animation_url = "https://assets.mixkit.co/videos/preview/mixkit-clouds-and-blue-sky-background-996-large.mp4"
 
     url = f"https://api.telegram.org/bot{TOKEN}/sendAnimation"
     keyboard = {
