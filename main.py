@@ -11,20 +11,18 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 def get_ai_inspiration():
     if not MISTRAL_API_KEY:
-        return "🌱 আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।"
+        return "আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।"
     try:
         url = "https://api.mistral.ai/v1/chat/completions"
         headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}"}
         data = {
             "model": "open-mistral-7b",
-            "messages": [{"role": "user", "content": "Write a 1-sentence motivational or family life tip in Bengali with an emoji. Simple and clean."}]
+            "messages": [{"role": "user", "content": "Write a 1-sentence motivational tip in Bengali. Simple and clean."}]
         }
         response = requests.post(url, headers=headers, json=data, timeout=15)
-        text = response.json()['choices'][0]['message']['content'].strip()
-        # Markdown এরর এড়াতে কিছু চিহ্ন পরিষ্কার করা
-        return text.replace("_", "-").replace("*", "")
+        return response.json()['choices'][0]['message']['content'].strip()
     except:
-        return "💡 ধৈর্য ধরুন, ভালো জিনিস পেতে কিছুটা সময় লাগে।"
+        return "ধৈর্য ধরুন, ভালো জিনিস পেতে কিছুটা সময় লাগে।"
 
 def get_market_data():
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
@@ -37,18 +35,19 @@ def get_market_data():
         
     daily_tip = get_ai_inspiration()
     
-    message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
+    # HTML ফরম্যাট ব্যবহার করা হয়েছে যা বেশি স্টেবল
+    message = f"🌟 <b>MARKET WATCH (DAILY UPDATE)</b> 🌟\n"
     message += f"━━━━━━━━━━━━━━━━━━━━\n"
-    message += f"📅 *Date:* {formatted_time}\n\n"
-    message += f"💰 *CRYPTO PRICES*\n"
+    message += f"📅 <b>Date:</b> {formatted_time}\n\n"
+    message += f"💰 <b>CRYPTO PRICES</b>\n"
     message += f"• BTC: ${btc_price} 📈\n"
     message += f"• ETH: $1,987.97 ✨\n\n"
-    message += f"📊 *STOCK MARKET*\n"
+    message += f"📊 <b>STOCK MARKET</b>\n"
     message += f"• Nifty: 25,756.30 ✅\n"
     message += f"• Gold: Closed (Weekend) 🔒\n\n"
-    message += f"✨ *AI Daily Inspiration:*\n"
-    message += f"{daily_tip}\n\n"
-    message += f"🚀 *Powered by Mintu Automation*"
+    message += f"✨ <b>AI Daily Inspiration:</b>\n"
+    message += f"<i>{daily_tip}</i>\n\n"
+    message += f"🚀 <b>Powered by Mintu Automation</b>"
     return message
 
 def send_telegram(text):
@@ -57,13 +56,11 @@ def send_telegram(text):
     image_url = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80"
     url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
     
-    # বোতামের সঠিক লিঙ্ক এবং ফরম্যাট
+    # বোতামের লিঙ্কগুলো আলাদা আলাদা লাইনে দেওয়া হলো যাতে ক্লিক করা সহজ হয়
     keyboard = {
         "inline_keyboard": [
-            [
-                {"text": "🔗 Join Channel", "url": "https://t.me/offers_live_24"},
-                {"text": "📊 Live Charts", "url": "https://www.tradingview.com/"}
-            ]
+            [{"text": "🔗 Join Channel", "url": "https://telegram.me/offers_live_24"}],
+            [{"text": "📊 Live Charts", "url": "https://www.tradingview.com/"}]
         ]
     }
     
@@ -71,12 +68,12 @@ def send_telegram(text):
         "chat_id": CHAT_ID,
         "photo": image_url,
         "caption": text,
-        "parse_mode": "Markdown",
-        "reply_markup": json.dumps(keyboard) # বোতামকে JSON ফরম্যাটে পাঠানো হচ্ছে
+        "parse_mode": "HTML", # এখানে HTML মোড সেট করা হয়েছে
+        "reply_markup": json.dumps(keyboard)
     }
     
     r = requests.post(url, data=payload)
-    print(f"Final Telegram Log: {r.text}")
+    print(f"Log: {r.text}")
 
 if __name__ == "__main__":
     data = get_market_data()
