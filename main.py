@@ -6,26 +6,39 @@ import random
 # GitHub Secrets থেকে তথ্য নেওয়া
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-def get_inspiration():
-    tips = [
-        "🌱 আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।",
-        "👨‍👩‍👧‍👦 পরিবারের সাথে কাটানো সময় হলো জীবনের সেরা বিনিয়োগ।",
-        "💡 ধৈর্য ধরুন, ভালো জিনিস পেতে কিছুটা সময় লাগে।",
-        "🚀 সাফল্যের মূল চাবিকাঠি হলো কাজ শুরু করা এবং হাল না ছাড়া।",
-        "💰 সঞ্চয় করার মানে হলো নিজের ভবিষ্যৎকে নিরাপদ করা।",
-        "🌟 প্রতিদিন নিজেকে অন্তত ১% উন্নত করার চেষ্টা করুন।",
-        "🍎 সুস্বাস্থ্যই সকল সুখের মূল। আজ থেকেই নিজের যত্ন নিন।",
-        "📚 প্রতিদিন নতুন কিছু শিখুন, জ্ঞানই আপনাকে অন্যদের থেকে এগিয়ে রাখবে।"
-    ]
-    return random.choice(tips)
+def get_ai_inspiration():
+    """AI ব্যবহার করে নিজে থেকে মোটিভেশনাল টিপস তৈরি করা"""
+    if not GEMINI_API_KEY:
+        return "🌱 আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।" # API না থাকলে ফলব্যাক টিপস
+
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        headers = {'Content-Type': 'application/json'}
+        prompt = "Write a very short (1 sentence) unique motivational tip or a family life tip in Bengali. Start with a relevant emoji. Make it inspiring."
+        
+        data = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        
+        response = requests.post(url, headers=headers, json=data)
+        result = response.json()
+        
+        # AI জেনারেটেড টেক্সট বের করা
+        ai_message = result['candidates'][0]['content']['parts'][0]['text']
+        return ai_message.strip()
+    except Exception as e:
+        print(f"AI Error: {e}")
+        return "🚀 সাফল্যের মূল চাবিকাঠি হলো কাজ শুরু করা এবং হাল না ছাড়া।"
 
 def get_market_data():
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
     formatted_time = now.strftime("%d-%m-%Y %I:%M %p")
-    daily_tip = get_inspiration()
     
-    # মেসেজ ফরম্যাট (Caption হিসেবে থাকবে)
+    # AI থেকে টিপস নেওয়া
+    daily_tip = get_ai_inspiration()
+    
     message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
     message += f"━━━━━━━━━━━━━━━━━━━━\n"
     message += f"📅 *Date:* `{formatted_time}`\n\n"
@@ -38,7 +51,7 @@ def get_market_data():
     message += f"• Nifty: `25,756.30` ✅\n"
     message += f"• Gold: `Closed (Weekend)` 🔒\n\n"
     
-    message += f"✨ *Daily Inspiration & Tips:*\n"
+    message += f"✨ *AI Daily Inspiration:*\n"
     message += f"_{daily_tip}_\n"
     
     message += f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -50,9 +63,7 @@ def send_telegram_animation(text):
     if not TOKEN or not CHAT_ID:
         return
 
-    # এখানে একটি সুন্দর শান্ত বা মোটিভেশনাল অ্যানিমেশনের লিঙ্ক দেওয়া হয়েছে
-    # আপনি চাইলে আপনার পছন্দের যেকোনো GIF লিঙ্ক এখানে দিতে পারেন
-    animation_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJndXIzZmx6bmx3bm93eHptZ3RsczZ4bm93eHptZ3RsczZ4bm8mZXA9djFfaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/3o7TKVUn7iM8FMEU24/giphy.gif"
+    animation_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnJ4Z2YyYm94bmR5YmZ4bmR5YmZ4bmR5YmZ4bmR5YmZ4bmR5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/v9XoNIdV9uN17u28jT/giphy.gif"
 
     url = f"https://api.telegram.org/bot{TOKEN}/sendAnimation"
     
@@ -68,7 +79,7 @@ def send_telegram_animation(text):
     payload = {
         "chat_id": CHAT_ID,
         "animation": animation_url,
-        "caption": text, # আপনার টেক্সটটি এখন ক্যাপশন হিসেবে যাবে
+        "caption": text,
         "parse_mode": "Markdown",
         "reply_markup": keyboard
     }
