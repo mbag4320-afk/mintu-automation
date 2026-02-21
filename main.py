@@ -9,7 +9,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
-# আপনার কপি করা ইনভাইট লিঙ্কটি এখানে বসান (যেমন: https://t.me/+Abc123...)
+# লিঙ্কটি এখানে কোটেশনের ভেতরে দেওয়া হয়েছে
 INVITE_LINK = "https://t.me/OFFERS_LIVE_24" 
 
 def get_ai_inspiration():
@@ -31,7 +31,7 @@ def get_market_data():
     try:
         btc = round(yf.Ticker("BTC-USD").fast_info['last_price'], 2)
     except:
-        btc = "67,974"
+        btc = "67,974.55"
     
     daily_tip = get_ai_inspiration()
     
@@ -51,11 +51,11 @@ def send_telegram(text):
     image_url = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80"
     url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
     
-    # বোতামের লিঙ্ক
+    # বোতামের সঠিক সিনট্যাক্স
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🔗 Join Our Channel", "url": https://t.me/offers_live_24},
+                {"text": "🔗 Join Our Channel", "url": INVITE_LINK},
                 {"text": "📊 Charts", "url": "https://www.tradingview.com/"}
             ]
         ]
@@ -69,7 +69,8 @@ def send_telegram(text):
         "reply_markup": json.dumps(keyboard)
     }
     
-    requests.post(url, data=payload)
+    r = requests.post(url, data=payload)
+    print(r.text)
 
 if __name__ == "__main__":
     data = get_market_data()
