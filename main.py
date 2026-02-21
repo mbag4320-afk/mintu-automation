@@ -7,11 +7,13 @@ TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 def get_market_data():
-    now = datetime.datetime.now().strftime("%d-%m-%Y %H:%M")
+    # বিদেশের সময়ের সাথে ৫ ঘণ্টা ৩০ মিনিট যোগ করে স্থানীয় সময় বের করা (IST/BST)
+    now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
+    formatted_time = now.strftime("%d-%m-%Y %I:%M %p")
     
-    # প্রফেশনাল মেসেজ ফরম্যাট
     message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
-    message += f"📅 _Date: {now}_\n\n"
+    message += f"━━━━━━━━━━━━━━━━━━━━\n"
+    message += f"📅 *Date:* `{formatted_time}`\n\n"
     
     message += f"💰 *CRYPTO PRICES*\n"
     message += f"• BTC: `$68,418` 📈\n"
@@ -21,31 +23,37 @@ def get_market_data():
     message += f"• Nifty: `25,756.30` ✅\n"
     message += f"• Gold: `Closed (Weekend)` 🔒\n\n"
     
-    message += f"📢 *Alert:* Stay tuned for upcoming deals!\n\n"
-    message += f"🔗 [Join Our Channel](https://t.me/offers_live_24)\n"
+    message += f"📢 *Alert:* Stay tuned for upcoming deals!\n"
+    message += f"━━━━━━━━━━━━━━━━━━━━\n"
     message += f"🚀 *Powered by Mintu Automation*"
     
     return message
 
 def send_telegram_msg(text):
     if not TOKEN or not CHAT_ID:
-        print("Error: BOT_TOKEN or CHAT_ID not found in Secrets!")
+        print("Error: TOKEN or CHAT_ID not found!")
         return
 
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    
+    # ইনলাইন বাটন যোগ করা
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "🔗 Join Channel", "url": "https://t.me/offers_live_24"},
+                {"text": "📊 Live Charts", "url": "https://www.tradingview.com/"}
+            ]
+        ]
+    }
+
     payload = {
         "chat_id": CHAT_ID,
         "text": text,
         "parse_mode": "Markdown",
-        "disable_web_page_preview": False
+        "reply_markup": keyboard # এখানে বাটন সেট করা হয়েছে
     }
-    response = requests.post(url, json=payload)
     
-    if response.status_code == 200:
-        print("Success: Message sent to Telegram!")
-    else:
-        print(f"Failed: Status Code {response.status_code}")
-        print(response.text)
+    requests.post(url, json=payload)
 
 if __name__ == "__main__":
     data = get_market_data()
