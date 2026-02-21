@@ -4,40 +4,41 @@ import datetime
 import yfinance as yf
 import json
 
-# GitHub Secrets
+# GitHub Secrets থেকে তথ্য নেওয়া
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 def get_ai_inspiration():
+    """Mistral AI ব্যবহার করে ইউনিক টিপস তৈরি করা"""
     if not MISTRAL_API_KEY:
-        return "আজ তুমি শুরু করো, হার মেনো না কখনো—প্রতিটি ছোট পদক্ষেপ তোমাকে বিজয়ী করে তুলবে।"
+        return "সাফল্য মানে প্রতিদিনের ছোট ছোট প্রচেষ্টার সমষ্টি।"
     try:
         url = "https://api.mistral.ai/v1/chat/completions"
         headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}"}
         data = {
             "model": "open-mistral-7b",
-            "messages": [{"role": "user", "content": "Write a 1-sentence motivational tip in Bengali. Short and powerful."}]
+            "messages": [{"role": "user", "content": "Write a 1-sentence powerful motivational tip in Bengali. Only the sentence."}]
         }
         response = requests.post(url, headers=headers, json=data, timeout=15)
         return response.json()['choices'][0]['message']['content'].strip()
     except:
-        return "সাফল্য মানে প্রতিদিনের ছোট ছোট প্রচেষ্টার সমষ্টি।"
+        return "আজ তুমি শুরু করো, হার মেনো না কখনো।"
 
 def get_market_data():
+    """লাইভ মার্কেট ডাটা সংগ্রহ"""
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
     formatted_time = now.strftime("%d-%m-%Y %I:%M %p")
     
-    # লাইভ বিটকয়েন এবং ইথেরিয়াম প্রাইস
     try:
         btc_price = round(yf.Ticker("BTC-USD").fast_info['last_price'], 2)
         eth_price = round(yf.Ticker("ETH-USD").fast_info['last_price'], 2)
     except:
-        btc_price, eth_price = "67,982.67", "1,987.97"
+        btc_price, eth_price = "67,974.55", "1,987.97"
         
     daily_tip = get_ai_inspiration()
     
-    # HTML ফরম্যাটে মেসেজ
+    # HTML ফরম্যাটে সুন্দর মেসেজ
     message = f"🌟 <b>MARKET WATCH (DAILY UPDATE)</b> 🌟\n"
     message += f"━━━━━━━━━━━━━━━━━━━━\n"
     message += f"📅 <b>Date:</b> {formatted_time}\n\n"
@@ -49,23 +50,21 @@ def get_market_data():
     message += f"• Gold: Closed (Weekend) 🔒\n\n"
     message += f"✨ <b>AI Daily Inspiration:</b>\n"
     message += f"<i>{daily_tip}</i>\n\n"
-    message += f"🔗 <b>Join Link:</b> https://t.me/offers_live_24\n" # ব্যাকআপ টেক্সট লিঙ্ক
-    message += f"━━━━━━━━━━━━━━━━━━━━\n"
     message += f"🚀 <b>Powered by Mintu Automation</b>"
     return message
 
 def send_telegram(text):
     if not TOKEN or not CHAT_ID: return
     
-    # সরাসরি ইমেজের লিঙ্ক
+    # প্রকৃতির একটি সুন্দর স্থির ছবি
     image_url = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80"
     url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
     
-    # বোতামের লিঙ্ক - একদম ফ্রেশ ফরম্যাটে
+    # বোতামের লিঙ্ক - সরাসরি টেলিগ্রাম অ্যাপ ওপেন করার জন্য
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🔗 Join Channel", "url": "https://t.me/offers_live_24"},
+                {"text": "🔗 Join Channel", "url": "https://t.me/OFFERS_LIVE_24"},
                 {"text": "📊 Live Charts", "url": "https://www.tradingview.com/"}
             ]
         ]
@@ -80,7 +79,7 @@ def send_telegram(text):
     }
     
     r = requests.post(url, data=payload)
-    print(f"Log: {r.text}")
+    print(f"Final Telegram Response: {r.text}")
 
 if __name__ == "__main__":
     data = get_market_data()
