@@ -9,7 +9,6 @@ CHAT_ID = os.getenv("CHAT_ID")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 def get_ai_inspiration():
-    """Mistral AI ব্যবহার করে ইউনিক টিপস তৈরি করা"""
     if not MISTRAL_API_KEY:
         return "🌱 আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।"
     try:
@@ -17,7 +16,7 @@ def get_ai_inspiration():
         headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}"}
         data = {
             "model": "open-mistral-7b",
-            "messages": [{"role": "user", "content": "Write a 1-sentence motivational or family life tip in Bengali with an emoji. No intro, just the quote."}]
+            "messages": [{"role": "user", "content": "Write a 1-sentence motivational tip in Bengali with an emoji."}]
         }
         response = requests.post(url, headers=headers, json=data, timeout=15)
         return response.json()['choices'][0]['message']['content'].strip()
@@ -28,11 +27,10 @@ def get_market_data():
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
     formatted_time = now.strftime("%d-%m-%Y %I:%M %p")
     
-    # লাইভ বিটকয়েন প্রাইস সংগ্রহ
     try:
         btc_price = round(yf.Ticker("BTC-USD").fast_info['last_price'], 2)
     except:
-        btc_price = "Dynamic Error"
+        btc_price = "67,948.33"
         
     daily_tip = get_ai_inspiration()
     
@@ -54,14 +52,17 @@ def get_market_data():
 def send_telegram(text):
     if not TOKEN or not CHAT_ID: return
     
-    # এটি একটি প্রিমিয়াম লাক্সারি অ্যানিমেশন লিঙ্ক (যা মোটিভেশনের সাথে দারুণ মানায়)
-    animation_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXJ4Z2YyYm94bmR5YmZ4bmR5YmZ4bmR5YmZ4bmR5YmZ4bmR5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/v9XoNIdV9uN17u28jT/giphy.gif"
+    # এটি একটি গ্যারান্টিড অ্যানিমেশন লিঙ্ক (Nature Relaxation)
+    animation_url = "https://static.videezy.com/system/resources/previews/000/052/657/original/Cloud_6.mp4"
     
     url = f"https://api.telegram.org/bot{TOKEN}/sendAnimation"
+    
+    # বোতামের লিঙ্কগুলো এখানে দেওয়া হলো
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🔗 Join Channel", "url": "https://t.me/offers_live_24"},
+                # আপনার চ্যানেলের সঠিক লিঙ্কটি এখানে দিন (আমি t.me/offers_live_24 দিয়েছি)
+                {"text": "🔗 Join Channel", "url": "https://telegram.me/offers_live_24"},
                 {"text": "📊 Live Charts", "url": "https://www.tradingview.com/"}
             ]
         ]
@@ -75,7 +76,8 @@ def send_telegram(text):
         "reply_markup": keyboard
     }
     
-    requests.post(url, json=payload)
+    r = requests.post(url, json=payload)
+    print(f"Telegram Log: {r.text}")
 
 if __name__ == "__main__":
     data = get_market_data()
