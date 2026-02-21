@@ -3,40 +3,48 @@ import requests
 import datetime
 import random
 
-# GitHub Secrets থেকে তথ্য নেওয়া
+# GitHub Secrets
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 def get_ai_inspiration():
-    """AI ব্যবহার করে নিজে থেকে মোটিভেশনাল টিপস তৈরি করা"""
-    if not GEMINI_API_KEY:
-        return "🌱 আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।" # API না থাকলে ফলব্যাক টিপস
+    """Mistral AI ব্যবহার করে ইউনিক টিপস তৈরি করা"""
+    if not MISTRAL_API_KEY:
+        return "🌱 আজকের ছোট ছোট বিনিয়োগই আপনার ভবিষ্যতের বড় সম্পদ।"
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        headers = {'Content-Type': 'application/json'}
-        prompt = "Write a very short (1 sentence) unique motivational tip or a family life tip in Bengali. Start with a relevant emoji. Make it inspiring."
+        url = "https://api.mistral.ai/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {MISTRAL_API_KEY}"
+        }
         
+        # Mistral-কে প্রম্পট দেওয়া
         data = {
-            "contents": [{"parts": [{"text": prompt}]}]
+            "model": "mistral-tiny",
+            "messages": [
+                {"role": "user", "content": "Write a one-sentence unique motivational or family life tip in Bengali with a relevant emoji. Keep it simple and positive."}
+            ]
         }
         
         response = requests.post(url, headers=headers, json=data)
         result = response.json()
         
-        # AI জেনারেটেড টেক্সট বের করা
-        ai_message = result['candidates'][0]['content']['parts'][0]['text']
-        return ai_message.strip()
+        if 'choices' in result:
+            ai_text = result['choices'][0]['message']['content'].strip()
+            return ai_text
+        else:
+            return "💡 ধৈর্য ধরুন, ভালো জিনিস পেতে কিছুটা সময় লাগে।"
     except Exception as e:
-        print(f"AI Error: {e}")
+        print(f"Mistral Error: {e}")
         return "🚀 সাফল্যের মূল চাবিকাঠি হলো কাজ শুরু করা এবং হাল না ছাড়া।"
 
 def get_market_data():
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
     formatted_time = now.strftime("%d-%m-%Y %I:%M %p")
     
-    # AI থেকে টিপস নেওয়া
+    # Mistral AI থেকে টিপস নেওয়া
     daily_tip = get_ai_inspiration()
     
     message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
@@ -44,11 +52,11 @@ def get_market_data():
     message += f"📅 *Date:* `{formatted_time}`\n\n"
     
     message += f"💰 *CRYPTO PRICES*\n"
-    message += f"• BTC: `$68,418` 📈\n"
+    message += f"• BTC: `$68,418` ✅\n"
     message += f"• ETH: `$1,987.97` ✨\n\n"
     
     message += f"📊 *STOCK MARKET*\n"
-    message += f"• Nifty: `25,756.30` ✅\n"
+    message += f"• Nifty: `25,756.30` 📈\n"
     message += f"• Gold: `Closed (Weekend)` 🔒\n\n"
     
     message += f"✨ *AI Daily Inspiration:*\n"
@@ -56,17 +64,15 @@ def get_market_data():
     
     message += f"━━━━━━━━━━━━━━━━━━━━\n"
     message += f"🚀 *Powered by Mintu Automation*"
-    
     return message
 
 def send_telegram_animation(text):
-    if not TOKEN or not CHAT_ID:
-        return
+    if not TOKEN or not CHAT_ID: return
 
-    animation_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnJ4Z2YyYm94bmR5YmZ4bmR5YmZ4bmR5YmZ4bmR5YmZ4bmR5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/v9XoNIdV9uN17u28jT/giphy.gif"
+    # নতুন স্টেবল এবং সুন্দর অ্যানিমেশন (Nature/Sky)
+    animation_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueXpueXpueXpueXpueXpueXpueXpueXpueXpueXpueXpueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKMGpxXkoGZWAX6/giphy.gif"
 
     url = f"https://api.telegram.org/bot{TOKEN}/sendAnimation"
-    
     keyboard = {
         "inline_keyboard": [
             [
@@ -75,7 +81,6 @@ def send_telegram_animation(text):
             ]
         ]
     }
-
     payload = {
         "chat_id": CHAT_ID,
         "animation": animation_url,
@@ -83,7 +88,6 @@ def send_telegram_animation(text):
         "parse_mode": "Markdown",
         "reply_markup": keyboard
     }
-    
     requests.post(url, json=payload)
 
 if __name__ == "__main__":
