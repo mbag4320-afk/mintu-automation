@@ -16,7 +16,7 @@ def get_ai_inspiration():
         headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}"}
         data = {
             "model": "open-mistral-7b",
-            "messages": [{"role": "user", "content": "Write a 1-sentence unique motivational tip in Bengali with an emoji."}]
+            "messages": [{"role": "user", "content": "Write a 1-sentence unique motivational or family life tip in Bengali with an emoji. No intro, just the quote."}]
         }
         response = requests.post(url, headers=headers, json=data, timeout=15)
         return response.json()['choices'][0]['message']['content'].strip()
@@ -30,11 +30,10 @@ def get_market_data():
     try:
         btc_price = round(yf.Ticker("BTC-USD").fast_info['last_price'], 2)
     except:
-        btc_price = "67,948.33"
+        btc_price = "67,958.42"
         
     daily_tip = get_ai_inspiration()
     
-    # Markdown formatting সহজ করার জন্য
     message = f"🌟 *MARKET WATCH (DAILY UPDATE)* 🌟\n"
     message += f"━━━━━━━━━━━━━━━━━━━━\n"
     message += f"📅 *Date:* `{formatted_time}`\n\n"
@@ -53,18 +52,17 @@ def get_market_data():
 def send_telegram(text):
     if not TOKEN or not CHAT_ID: return
     
-    # এটি একটি অত্যন্ত নির্ভরযোগ্য অ্যানিমেশন লিঙ্ক (Nature)
-    # যদি এটি কাজ না করে, তবে এটি টেক্সট হিসেবে অটোমেটিক চলে যাবে
-    photo_url = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueXpueXpueXpueXpueXpueXpueXpueXpueXpueXpueXpueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKMGpxXkoGZWAX6/giphy.gif"
+    # এবার আমরা একটি হাই-কোয়ালিটি মোটিভেশনাল ছবি ব্যবহার করছি যা নিশ্চিতভাবে লোড হবে
+    image_url = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80"
     
-    url_animation = f"https://api.telegram.org/bot{TOKEN}/sendAnimation"
-    url_text = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
     
-    # বোতামের লিঙ্ক (নিশ্চিত করা হয়েছে)
+    # বোতামের লিঙ্ক (নিশ্চিত করুন আপনার চ্যানেলের লিঙ্কটি সঠিক কি না)
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🔗 Join Channel", "url": "https://t.me/offers_live_24"},
+                # আপনার চ্যানেলের আসল লিঙ্কটি নিচে 'url' এর জায়গায় দিন
+                {"text": "🔗 Join Our Channel", "url": "https://t.me/offers_live_24"},
                 {"text": "📊 Live Charts", "url": "https://www.tradingview.com/"}
             ]
         ]
@@ -72,27 +70,14 @@ def send_telegram(text):
     
     payload = {
         "chat_id": CHAT_ID,
+        "photo": image_url,
         "caption": text,
-        "animation": photo_url,
         "parse_mode": "Markdown",
         "reply_markup": keyboard
     }
-
-    # প্রথমে অ্যানিমেশন সহ পাঠানোর চেষ্টা করবে
-    r = requests.post(url_animation, json=payload)
     
-    # যদি অ্যানিমেশন কাজ না করে (এরর আসে), তবে শুধু টেক্সট পাঠাবে
-    if r.status_code != 200:
-        print(f"Animation failed, sending text only. Error: {r.text}")
-        payload_text = {
-            "chat_id": CHAT_ID,
-            "text": text,
-            "parse_mode": "Markdown",
-            "reply_markup": keyboard
-        }
-        r = requests.post(url_text, json=payload_text)
-    
-    print(f"Final Telegram Log: {r.text}")
+    r = requests.post(url, json=payload)
+    print(f"Telegram Log: {r.text}")
 
 if __name__ == "__main__":
     data = get_market_data()
